@@ -233,7 +233,10 @@ main (int argc, char *argv[])
   pid_t termpid;
 
   /* Make uses of freed and uninitialized memory known.  */
-  mallopt (M_PERTURB, 42);
+#ifndef MALLOC_PERTURB
+# define MALLOC_PERTURB 42
+#endif
+  mallopt (M_PERTURB, MALLOC_PERTURB);
 
 #ifdef STDOUT_UNBUFFERED
   setbuf (stdout, NULL);
