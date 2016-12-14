@@ -312,14 +312,6 @@ struct rtld_global
      list of loaded objects while an object is added to or removed
      from that list.  */
   __rtld_lock_define_recursive (EXTERN, _dl_load_write_lock)
-  //#ifndef NO_PIP_WORKAROUND
-  //  /* AH
-  //    The above locks are initialized when libpthread.so is loaded, with
-  //    ProcessesInProcess, however, the solib can be loaded multiple times,
-  //    so the following flag is to prevent this multiple initialization.
-  //    AH */
-  //  EXTERN int _dl_lock_initialized;
-  //#endif
 
   /* Incremented whenever something may have been added to dl_loaded.  */
   EXTERN unsigned long long _dl_load_adds;
@@ -394,7 +386,11 @@ struct rtld_global
 /* Number of additional entries in the slotinfo array of each slotinfo
    list element.  A large number makes it almost certain take we never
    have to iterate beyond the first element in the slotinfo list.  */
+#ifndef NO_PIP_WORKAROUND
+#define TLS_SLOTINFO_SURPLUS (128)
+#else
 #define TLS_SLOTINFO_SURPLUS (62)
+#endif
 
 /* Number of additional allocated dtv slots.  This was initially
    14, but problems with python, MESA, and X11's uses of static TLS meant
@@ -407,7 +403,11 @@ struct rtld_global
    distributions to coordinate the usage of static TLS.  Any user of this
    resource is effectively coordinating a global resource since this
    surplus is allocated for each thread at startup.  */
+#ifndef NO_PIP_WORKAROUND
+#define DTV_SURPLUS	(64)
+#else
 #define DTV_SURPLUS	(32)
+#endif
 
   /* Initial dtv of the main thread, not allocated with normal malloc.  */
   EXTERN void *_dl_initial_dtv;
