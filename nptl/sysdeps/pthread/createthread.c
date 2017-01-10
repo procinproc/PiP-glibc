@@ -144,6 +144,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 
 static int
 create_thread (struct pthread *pd, const struct pthread_attr *attr,
+	       int clone_flags,
 	       STACK_VARIABLES_PARMS)
 {
 #if TLS_TCB_AT_TP
@@ -177,10 +178,12 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
      The termination signal is chosen to be zero which means no signal
      is sent.  */
+#if 0
   int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
 		     | CLONE_SETTLS | CLONE_PARENT_SETTID
 		     | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
 		     | 0);
+#endif
 
   if (__builtin_expect (THREAD_GETMEM (THREAD_SELF, report_events), 0))
     {

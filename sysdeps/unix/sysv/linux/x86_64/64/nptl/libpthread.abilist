@@ -115,6 +115,7 @@ GLIBC_2.2.5
  pthread_condattr_init F
  pthread_condattr_setpshared F
  pthread_create F
+ pip_clone_mostly_pthread F
  pthread_detach F
  pthread_equal F
  pthread_exit F
