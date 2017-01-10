@@ -432,10 +432,19 @@ start_thread (void *arg)
 }
 
 
-int
-__pthread_create_2_1 (newthread, attr, start_routine, arg)
+static int
+pip_pthread_create (
+     pthread_t *newthread,
+     const pthread_attr_t *attr,
+     int clone_flags,
+     void *(*start_routine) (void *),
+     void *arg);
+
+static int
+pip_pthread_create (newthread, attr, clone_flags, start_routine, arg)
      pthread_t *newthread;
      const pthread_attr_t *attr;
+     int clone_flags;
      void *(*start_routine) (void *);
      void *arg;
 {
@@ -554,10 +563,46 @@ __pthread_create_2_1 (newthread, attr, start_routine, arg)
   LIBC_PROBE (pthread_create, 4, newthread, attr, start_routine, arg);
 
   /* Start the thread.  */
-  return create_thread (pd, iattr, STACK_VARIABLES_ARGS);
+  return create_thread (pd, iattr, clone_flags, STACK_VARIABLES_ARGS);
+}
+
+int
+__pthread_create_2_1 (newthread, attr, start_routine, arg)
+     pthread_t *newthread;
+     const pthread_attr_t *attr;
+     void *(*start_routine) (void *);
+     void *arg;
+{
+  return pip_pthread_create(newthread, attr,
+			    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
+			    | CLONE_SETTLS | CLONE_PARENT_SETTID
+			    | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
+			    | 0,
+			    start_routine, arg);
 }
 versioned_symbol (libpthread, __pthread_create_2_1, pthread_create, GLIBC_2_1);
 
+int
+pip_clone_mostly_pthread (
+     pthread_t *newthread,
+     int clone_flags,
+     void *(*start_routine) (void *),
+     void *arg);
+
+int
+pip_clone_mostly_pthread (newthread, clone_flags, start_routine, arg)
+     pthread_t *newthread;
+     int clone_flags;
+     void *(*start_routine) (void *);
+     void *arg;
+{
+  return pip_pthread_create(newthread, NULL,
+			    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
+			    | CLONE_SETTLS | CLONE_PARENT_SETTID
+			    | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
+			    | 0,
+			    start_routine, arg);
+}
 
 #if SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
 int
