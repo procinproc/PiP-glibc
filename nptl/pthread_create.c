@@ -583,6 +583,16 @@ __pthread_create_2_1 (newthread, attr, start_routine, arg)
 versioned_symbol (libpthread, __pthread_create_2_1, pthread_create, GLIBC_2_1);
 
 int
+pip_clone_minimum (
+     pthread_t *newthread,
+     int clone_flags,
+     void *(*start_routine) (void *),
+     void *arg)
+{
+  return ENOSYS;
+}
+
+int
 pip_clone_mostly_pthread (
      pthread_t *newthread,
      int clone_flags,
