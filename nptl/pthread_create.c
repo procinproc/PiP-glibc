@@ -606,11 +606,7 @@ pip_clone_mostly_pthread (newthread, clone_flags, start_routine, arg)
      void *(*start_routine) (void *);
      void *arg;
 {
-  return pip_pthread_create(newthread, NULL,
-			    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
-			    | CLONE_SETTLS | CLONE_PARENT_SETTID
-			    | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
-			    | 0,
+  return pip_pthread_create(newthread, NULL, clone_flags,
 			    start_routine, arg);
 }
 
