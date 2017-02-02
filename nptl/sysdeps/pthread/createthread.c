@@ -23,6 +23,7 @@
 #include <atomic.h>
 #include <ldsodefs.h>
 #include <tls.h>
+#include <sys/types.h>
 
 #include "kernel-features.h"
 
@@ -49,7 +50,7 @@ int *__libc_multiple_threads_ptr attribute_hidden;
 static int
 do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	  int clone_flags, int (*fct) (void *), STACK_VARIABLES_PARMS,
-	  int stopped)
+	  int stopped, pid_t *pidp)
 {
 #ifdef PREPARE_CREATE
   PREPARE_CREATE;
@@ -74,6 +75,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
   int rc = ARCH_CLONE (fct, STACK_VARIABLES_ARGS, clone_flags,
 		       pd, &pd->tid, TLS_VALUE, &pd->tid);
 
+  *pidp = rc;
   if (__builtin_expect (rc == -1, 0))
     {
       atomic_decrement (&__nptl_nthreads); /* Oops, we lied for a second.  */
@@ -145,7 +147,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 static int
 create_thread (struct pthread *pd, const struct pthread_attr *attr,
 	       int clone_flags,
-	       STACK_VARIABLES_PARMS)
+	       STACK_VARIABLES_PARMS, pid_t *pidp)
 {
 #if TLS_TCB_AT_TP
   assert (pd->header.tcb != NULL);
@@ -201,7 +203,7 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 	  /* Create the thread.  We always create the thread stopped
 	     so that it does not get far before we tell the debugger.  */
 	  int res = do_clone (pd, attr, clone_flags, start_thread,
-			      STACK_VARIABLES_ARGS, 1);
+			      STACK_VARIABLES_ARGS, 1, pidp);
 	  if (res == 0)
 	    {
 	      /* Now fill in the information about the new thread in
@@ -245,7 +247,7 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
   /* Actually create the thread.  */
   int res = do_clone (pd, attr, clone_flags, start_thread,
-		      STACK_VARIABLES_ARGS, stopped);
+		      STACK_VARIABLES_ARGS, stopped, pidp);
 
   if (res == 0 && stopped)
     /* And finally restart the new thread.  */

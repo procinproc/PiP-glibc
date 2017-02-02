@@ -438,6 +438,7 @@ pip_pthread_create (
      int clone_flags,
      void *(*start_routine) (void *),
      void *arg)
+     pid_t *pidp)
 {
   STACK_VARIABLES;
 
@@ -554,19 +555,21 @@ pip_pthread_create (
   LIBC_PROBE (pthread_create, 4, newthread, attr, start_routine, arg);
 
   /* Start the thread.  */
-  return create_thread (pd, iattr, clone_flags, STACK_VARIABLES_ARGS);
+  return create_thread (pd, iattr, clone_flags, STACK_VARIABLES_ARGS,
+			pidp);
 }
 
 int
 __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 		      void *(*start_routine) (void *), void *arg)
 {
+  pid_t pid;
   return pip_pthread_create(newthread, attr,
 			    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
 			    | CLONE_SETTLS | CLONE_PARENT_SETTID
 			    | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
 			    | 0,
-			    start_routine, arg);
+			    start_routine, arg, &pid);
 }
 versioned_symbol (libpthread, __pthread_create_2_1, pthread_create, GLIBC_2_1);
 
@@ -575,7 +578,8 @@ pip_clone_minimum (
      pthread_t *newthread,
      int clone_flags,
      void *(*start_routine) (void *),
-     void *arg)
+     void *arg,
+     pid_t *pidp)
 {
   return ENOSYS;
 }
@@ -585,17 +589,19 @@ pip_clone_mostly_pthread (
      pthread_t *newthread,
      int clone_flags,
      void *(*start_routine) (void *),
-     void *arg);
+     void *arg,
+     pid_t *pidp);
 
 int
-pip_clone_mostly_pthread (newthread, clone_flags, start_routine, arg)
+pip_clone_mostly_pthread (newthread, clone_flags, start_routine, arg, pidp)
      pthread_t *newthread;
      int clone_flags;
      void *(*start_routine) (void *);
      void *arg;
+     pid_t *pidp;
 {
   return pip_pthread_create(newthread, NULL, clone_flags,
-			    start_routine, arg);
+			    start_routine, arg, pidp);
 }
 
 #if SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
