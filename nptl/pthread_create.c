@@ -590,6 +590,8 @@ int
 pip_clone_minimum (
      pthread_t *newthread,
      int clone_flags,
+     int core_no,
+     size_t stack_size,
      void *(*start_routine) (void *),
      void *arg,
      pid_t *pidp)
@@ -601,20 +603,52 @@ int
 pip_clone_mostly_pthread (
      pthread_t *newthread,
      int clone_flags,
+     int core_no,
+     size_t stack_size,
      void *(*start_routine) (void *),
      void *arg,
      pid_t *pidp);
 
 int
-pip_clone_mostly_pthread (newthread, clone_flags, start_routine, arg, pidp)
+pip_clone_mostly_pthread (newthread, clone_flags, core_no, stack_size,
+			  start_routine, arg, pidp)
      pthread_t *newthread;
      int clone_flags;
+     int core_no;
+     size_t stack_size;
      void *(*start_routine) (void *);
      void *arg;
      pid_t *pidp;
 {
-  return pip_pthread_create(newthread, NULL, clone_flags,
-			    start_routine, arg, pidp);
+  int rv;
+  pthread_attr_t attr, *a = NULL;
+
+  if (stack_size != 0 || core_no != -1) {
+    a = &attr;
+    rv = pthread_attr_init(&attr);
+    if (rv != 0)
+      return (rv);
+    if (stack_size != 0) {
+      rv = pthread_attr_setstacksize(&attr, stack_size);
+      if (rv != 0)
+	return (rv);
+    }
+    if (core_no != -1) {
+      cpu_set_t cpuset;
+
+      CPU_ZERO(&cpuset);
+      CPU_SET(core_no, &cpuset);
+      rv = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+      if (rv != 0) {
+	return (rv);
+      }
+    }
+  }
+
+  rv = pip_pthread_create(newthread, a, clone_flags, start_routine, arg, pidp);
+  if (a != NULL)
+    pthread_attr_destroy(a);
+  return (rv);
 }
 
 #if SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
