@@ -52,6 +52,8 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	  int clone_flags, int (*fct) (void *), STACK_VARIABLES_PARMS,
 	  int stopped, pid_t *pidp)
 {
+  pid_t ptid = -1;
+
 #ifdef PREPARE_CREATE
   PREPARE_CREATE;
 #endif
@@ -73,7 +75,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
   atomic_increment (&__nptl_nthreads);
 
   int rc = ARCH_CLONE (fct, STACK_VARIABLES_ARGS, clone_flags,
-		       pd, &pd->tid, TLS_VALUE, &pd->tid);
+		       pd, &ptid, TLS_VALUE, &pd->tid);
 
   *pidp = rc;
   if (__builtin_expect (rc == -1, 0))
@@ -102,7 +104,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* Set the affinity mask if necessary.  */
       if (attr->cpuset != NULL)
 	{
-	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3, pd->tid,
+	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3, ptid,
 				  attr->cpusetsize, attr->cpuset);
 
 	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err), 0))
@@ -113,7 +115,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	    err_out:
 	      (void) INTERNAL_SYSCALL (tgkill, err2, 3,
 				       THREAD_GETMEM (THREAD_SELF, pid),
-				       pd->tid, SIGCANCEL);
+				       ptid, SIGCANCEL);
 
 	      /* We do not free the stack here because the canceled thread
 		 itself will do this.  */
@@ -127,7 +129,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* Set the scheduling parameters.  */
       if ((attr->flags & ATTR_FLAG_NOTINHERITSCHED) != 0)
 	{
-	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3, pd->tid,
+	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3, ptid,
 				  pd->schedpolicy, &pd->schedparam);
 
 	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err), 0))
