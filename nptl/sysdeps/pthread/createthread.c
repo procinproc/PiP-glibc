@@ -75,9 +75,9 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
   atomic_increment (&__nptl_nthreads);
 
   int rc = ARCH_CLONE (fct, STACK_VARIABLES_ARGS, clone_flags,
-		       pd, &ptid, TLS_VALUE, &pd->tid);
+		       pd, &pd->tid, TLS_VALUE, &pd->tid);
 
-  *pidp = rc;
+  ptid = pd->tid; /* do this ASAP to narrow the window of race condition */
   if (__builtin_expect (rc == -1, 0))
     {
       atomic_decrement (&__nptl_nthreads); /* Oops, we lied for a second.  */
@@ -94,6 +94,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* We have to translate error codes.  */
       return errno == ENOMEM ? EAGAIN : errno;
     }
+  *pidp = rc;
 
   /* Now we have the possibility to set scheduling parameters etc.  */
   if (__builtin_expect (stopped != 0, 0))
@@ -107,7 +108,10 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3, ptid,
 				  attr->cpusetsize, attr->cpuset);
 
-	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err), 0))
+	  if (__builtin_expect (
+		      INTERNAL_SYSCALL_ERROR_P (res, err) &&
+		      INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH,
+		      0))
 	    {
 	      /* The operation failed.  We have to kill the thread.  First
 		 send it the cancellation signal.  */
@@ -132,7 +136,8 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3, ptid,
 				  pd->schedpolicy, &pd->schedparam);
 
-	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err), 0))
+	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err) &&
+				INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH, 0))
 	    goto err_out;
 	}
     }
