@@ -260,7 +260,7 @@ struct rtld_global
 /* Non-shared code has no support for multiple namespaces.  */
 #ifdef SHARED
 #ifndef NO_PIP_WORKAROUND
-# define DL_NNS 128
+# define DL_NNS 256
 #else
 # define DL_NNS 16
 #endif
@@ -403,11 +403,7 @@ struct rtld_global
    distributions to coordinate the usage of static TLS.  Any user of this
    resource is effectively coordinating a global resource since this
    surplus is allocated for each thread at startup.  */
-#ifndef NO_PIP_WORKAROUND
-#define DTV_SURPLUS	(64)
-#else
 #define DTV_SURPLUS	(32)
-#endif
 
   /* Initial dtv of the main thread, not allocated with normal malloc.  */
   EXTERN void *_dl_initial_dtv;
