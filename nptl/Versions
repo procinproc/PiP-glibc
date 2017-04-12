@@ -253,7 +253,6 @@ libpthread {
     pthread_setname_np; pthread_getname_np;
 
     pip_clone_mostly_pthread;
-    pip_clone_minimum;
   };
 
   GLIBC_PRIVATE {
