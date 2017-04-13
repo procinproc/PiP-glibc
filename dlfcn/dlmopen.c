@@ -72,7 +72,7 @@ dlmopen_doit (void *a)
 			     args->caller,
 			     args->nsid, __dlfcn_argc, __dlfcn_argv,
 			     __environ);
-  }
+}
 
 
 void *

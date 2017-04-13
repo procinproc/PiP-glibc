@@ -106,6 +106,7 @@ _dl_try_allocate_static_tls (struct link_map *map)
     }
   else
     map->l_need_tls_init = 1;
+
   return 0;
 }
 
