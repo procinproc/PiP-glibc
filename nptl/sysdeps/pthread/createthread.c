@@ -23,7 +23,9 @@
 #include <atomic.h>
 #include <ldsodefs.h>
 #include <tls.h>
+#ifndef NO_PIPCLONE_WORKAROUND
 #include <sys/types.h>
+#endif
 
 #include "kernel-features.h"
 
@@ -50,9 +52,15 @@ int *__libc_multiple_threads_ptr attribute_hidden;
 static int
 do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	  int clone_flags, int (*fct) (void *), STACK_VARIABLES_PARMS,
-	  int stopped, pid_t *pidp)
+	  int stopped
+#ifdef WITH_PIPCLONE
+	  , pid_t *pidp
+#endif
+	  )
 {
+#ifndef NO_PIPCLONE_WORKAROUND
   pid_t ptid = -1;
+#endif
 
 #ifdef PREPARE_CREATE
   PREPARE_CREATE;
@@ -77,7 +85,9 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
   int rc = ARCH_CLONE (fct, STACK_VARIABLES_ARGS, clone_flags,
 		       pd, &pd->tid, TLS_VALUE, &pd->tid);
 
+#ifdef PREPARE_CREATE
   ptid = pd->tid; /* do this ASAP to narrow the window of race condition */
+#endif
   if (__builtin_expect (rc == -1, 0))
     {
       atomic_decrement (&__nptl_nthreads); /* Oops, we lied for a second.  */
@@ -94,7 +104,9 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* We have to translate error codes.  */
       return errno == ENOMEM ? EAGAIN : errno;
     }
+#ifdef WITH_PIPCLONE
   *pidp = rc;
+#endif
 
   /* Now we have the possibility to set scheduling parameters etc.  */
   if (__builtin_expect (stopped != 0, 0))
@@ -105,13 +117,20 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* Set the affinity mask if necessary.  */
       if (attr->cpuset != NULL)
 	{
-	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3, ptid,
+	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3,
+#ifndef NO_PIPCLONE_WORKAROUND
+				  ptid,
+#else
+				  pd->tid,
+#endif
 				  attr->cpusetsize, attr->cpuset);
 
 	  if (__builtin_expect (
-		      INTERNAL_SYSCALL_ERROR_P (res, err) &&
-		      INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH,
-		      0))
+		      INTERNAL_SYSCALL_ERROR_P (res, err)
+#ifndef NO_PIPCLONE_WORKAROUND
+		      && INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH
+#endif
+		      , 0))
 	    {
 	      /* The operation failed.  We have to kill the thread.  First
 		 send it the cancellation signal.  */
@@ -119,7 +138,12 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 	    err_out:
 	      (void) INTERNAL_SYSCALL (tgkill, err2, 3,
 				       THREAD_GETMEM (THREAD_SELF, pid),
-				       ptid, SIGCANCEL);
+#ifndef NO_PIPCLONE_WORKAROUND
+				       ptid,
+#else
+				       pd->tid,
+#endif
+				       SIGCANCEL);
 
 	      /* We do not free the stack here because the canceled thread
 		 itself will do this.  */
@@ -133,11 +157,19 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
       /* Set the scheduling parameters.  */
       if ((attr->flags & ATTR_FLAG_NOTINHERITSCHED) != 0)
 	{
-	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3, ptid,
+	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3,
+#ifndef NO_PIPCLONE_WORKAROUND
+				  ptid,
+#else
+				  pd->tid,
+#endif
 				  pd->schedpolicy, &pd->schedparam);
 
-	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err) &&
-				INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH, 0))
+	  if (__builtin_expect (INTERNAL_SYSCALL_ERROR_P (res, err)
+#ifndef NO_PIPCLONE_WORKAROUND
+				&& INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH
+#endif
+				, 0))
 	    goto err_out;
 	}
     }
@@ -153,8 +185,14 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
 
 static int
 create_thread (struct pthread *pd, const struct pthread_attr *attr,
+#ifdef WITH_PIPCLONE
 	       int clone_flags,
-	       STACK_VARIABLES_PARMS, pid_t *pidp)
+#endif
+	       STACK_VARIABLES_PARMS
+#ifdef WITH_PIPCLONE
+	       , pid_t *pidp
+#endif
+	       )
 {
 #ifdef TLS_TCB_AT_TP
   assert (pd->header.tcb != NULL);
@@ -187,7 +225,7 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
      The termination signal is chosen to be zero which means no signal
      is sent.  */
-#if 0
+#ifndef WITH_PIPCLONE
   int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SIGNAL
 		     | CLONE_SETTLS | CLONE_PARENT_SETTID
 		     | CLONE_CHILD_CLEARTID | CLONE_SYSVSEM
@@ -210,7 +248,11 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 	  /* Create the thread.  We always create the thread stopped
 	     so that it does not get far before we tell the debugger.  */
 	  int res = do_clone (pd, attr, clone_flags, start_thread,
-			      STACK_VARIABLES_ARGS, 1, pidp);
+			      STACK_VARIABLES_ARGS, 1
+#ifdef WITH_PIPCLONE
+			      , pidp
+#endif
+			      );
 	  if (res == 0)
 	    {
 	      /* Now fill in the information about the new thread in
@@ -254,7 +296,11 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
   /* Actually create the thread.  */
   int res = do_clone (pd, attr, clone_flags, start_thread,
-		      STACK_VARIABLES_ARGS, stopped, pidp);
+		      STACK_VARIABLES_ARGS, stopped
+#ifdef WITH_PIPCLONE
+		      , pidp
+#endif
+		      );
 
   if (res == 0 && stopped)
     /* And finally restart the new thread.  */
