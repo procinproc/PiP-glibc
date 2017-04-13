@@ -424,7 +424,7 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
 
   /* Initialize the environment.  libc.so gets initialized after us due to a
      circular dependency and hence __environ is not available otherwise.  */
-  __environ = envp;
+  __environ = envp; 
 
 #ifndef SHARED
   __libc_init_secure ();

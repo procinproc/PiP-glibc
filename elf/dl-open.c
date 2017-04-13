@@ -587,7 +587,7 @@ TLS generation counter wrapped!  Please report this."));
 void *
 _dl_open (const char *file, int mode, const void *caller_dlopen, Lmid_t nsid,
 	  int argc, char *argv[], char *env[])
-{;
+{
   if ((mode & RTLD_BINDING_MASK) == 0)
     /* One of the flags must be set.  */
     _dl_signal_error (EINVAL, file, NULL, N_("invalid mode for dlopen()"));
