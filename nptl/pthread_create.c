@@ -431,14 +431,20 @@ start_thread (void *arg)
 }
 
 
+#ifdef WITH_PIPCLONE
 static int
 pip_pthread_create (
      pthread_t *newthread,
      const pthread_attr_t *attr,
      int clone_flags,
      void *(*start_routine) (void *),
-     void *arg)
+     void *arg,
      pid_t *pidp)
+#else
+int
+__pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
+		      void *(*start_routine) (void *), void *arg)
+#endif
 {
   STACK_VARIABLES;
 
@@ -555,10 +561,18 @@ pip_pthread_create (
   LIBC_PROBE (pthread_create, 4, newthread, attr, start_routine, arg);
 
   /* Start the thread.  */
-  return create_thread (pd, iattr, clone_flags, STACK_VARIABLES_ARGS,
-			pidp);
+  return create_thread (pd, iattr,
+#ifdef WITH_PIPCLONE
+			clone_flags,
+#endif
+			STACK_VARIABLES_ARGS
+#ifdef WITH_PIPCLONE
+			, pidp
+#endif
+			);
 }
 
+#ifdef WITH_PIPCLONE
 int
 __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 		      void *(*start_routine) (void *), void *arg)
@@ -571,8 +585,11 @@ __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 			    | 0,
 			    start_routine, arg, &pid);
 }
+#endif /* WITH_PIPCLONE */
+
 versioned_symbol (libpthread, __pthread_create_2_1, pthread_create, GLIBC_2_1);
 
+#ifdef WITH_PIPCLONE
 int
 pip_clone_mostly_pthread (
      pthread_t *newthread,
@@ -624,6 +641,7 @@ pip_clone_mostly_pthread (newthread, clone_flags, core_no, stack_size,
     pthread_attr_destroy(a);
   return (rv);
 }
+#endif /* WITH_PIPCLONE */
 
 #if SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
 int

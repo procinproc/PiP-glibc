@@ -1084,6 +1084,9 @@ defines += -D_LIBC_REENTRANT
 libio-mtsafe = -D_IO_MTSAFE_IO
 endif
 
+# for PiP
+defines += -DWITH_PIPCLONE
+
 endif # Makeconfig not yet included
 
 # Local Variables:
