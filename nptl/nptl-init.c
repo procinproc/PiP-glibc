@@ -424,7 +424,7 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
 
   /* Initialize the environment.  libc.so gets initialized after us due to a
      circular dependency and hence __environ is not available otherwise.  */
-  __environ = envp; 
+  __environ = envp;
 
 #ifndef SHARED
   __libc_init_secure ();
@@ -463,44 +463,25 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
   __default_pthread_attr.guardsize = GLRO (dl_pagesize);
 
 #ifdef SHARED
-# ifndef NO_PIP_WORKAROUND
-  /* In case this libpthread copy is in a PIP task,
-     never re-initialize rtld locks. */
-  Dl_info di;
-  struct link_map *l;
-  int dl_inited = 0;
+  /* Transfer the old value from the dynamic linker's internal location. */
+  *__libc_dl_error_tsd () = *(*GL(dl_error_catch_tsd)) ();
+  GL(dl_error_catch_tsd) = &__libc_dl_error_tsd;
 
-  if (_dl_addr (__pthread_initialize_minimal_internal, &di, &l, NULL) != 0
-      && l->l_ns != LM_ID_BASE)
-# endif
-    {
-      dl_inited = 1;
-      /* Transfer the old value from the dynamic linker's internal location. */
-      *__libc_dl_error_tsd () = *(*GL(dl_error_catch_tsd)) ();
-      GL(dl_error_catch_tsd) = &__libc_dl_error_tsd;
+  /* Make __rtld_lock_{,un}lock_recursive use pthread_mutex_{,un}lock,
+     keep the lock count from the ld.so implementation.  */
+  GL(dl_rtld_lock_recursive) = (void *) __pthread_mutex_lock;
+  GL(dl_rtld_unlock_recursive) = (void *) __pthread_mutex_unlock;
+  unsigned int rtld_lock_count = GL(dl_load_lock).mutex.__data.__count;
+  GL(dl_load_lock).mutex.__data.__count = 0;
+  while (rtld_lock_count-- > 0)
+    __pthread_mutex_lock (&GL(dl_load_lock).mutex);
 
-      /* Make __rtld_lock_{,un}lock_recursive use pthread_mutex_{,un}lock,
-	 keep the lock count from the ld.so implementation.  */
-      GL(dl_rtld_lock_recursive) = (void *) __pthread_mutex_lock;
-      GL(dl_rtld_unlock_recursive) = (void *) __pthread_mutex_unlock;
-      unsigned int rtld_lock_count = GL(dl_load_lock).mutex.__data.__count;
-      GL(dl_load_lock).mutex.__data.__count = 0;
-      while (rtld_lock_count-- > 0)
-	__pthread_mutex_lock (&GL(dl_load_lock).mutex);
-    }
   GL(dl_make_stack_executable_hook) = &__make_stacks_executable;
 #endif
 
   GL(dl_init_static_tls) = &__pthread_init_static_tls;
 
-#ifdef SHARED
-# ifndef NO_PIP_WORKAROUND
-  //if( !dl_inited )
-# endif
-#endif
-    {
-      GL(dl_wait_lookup_done) = &__wait_lookup_done;
-    }
+  GL(dl_wait_lookup_done) = &__wait_lookup_done;
 
   /* Register the fork generation counter with the libc.  */
 #ifndef TLS_MULTIPLE_THREADS_IN_TCB
