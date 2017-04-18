@@ -34,11 +34,11 @@ x86_64)
 	opt_add_ons=ports,nptl,rtkaio,c_stubs,libidn
 	opt_build=x86_64-redhat-linux
 	opt_multi_arch=--enable-multi-arch
-	opt_systemtap=--disable-systemtap	# for PiP by Atsushi HORI
+	opt_systemtap=--enable-systemtap
 	opt_mflags=
 	;;
 *)
-	echo >&2 "`basename $0`: unknown machine type: `uname -m`"
+	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
 	exit 2
 	;;
 esac
