@@ -1,2 +1,2 @@
 Native POSIX Threads Library by Ulrich Drepper et al
-       patched to implement PiP lib. (pip_clone_mostly_pthread) by N. Soda (SRA)
+(PiP patches by aics.riken.jp, 2017)
