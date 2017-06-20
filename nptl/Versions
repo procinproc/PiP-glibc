@@ -252,6 +252,7 @@ libpthread {
 
     pthread_setname_np; pthread_getname_np;
 
+    # PiP
     pip_clone_mostly_pthread;
   };
 
