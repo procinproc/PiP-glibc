@@ -1601,7 +1601,6 @@ cannot enable executable stack as shared object requires");
 #ifdef ELF_MACHINE_DEBUG_SETUP
   /* Some machines (e.g. MIPS) don't use DT_DEBUG in this way.  */
   ELF_MACHINE_DEBUG_SETUP (l, r);
-  ELF_MACHINE_DEBUG_SETUP (&GL(dl_rtld_map), r);
 #else
   if (l->l_info[DT_DEBUG] != NULL)
     /* There is a DT_DEBUG entry in the dynamic section.  Fill it in
