@@ -46,9 +46,6 @@ ld {
   GLIBC_2.4 {
     # stack canary
     __stack_chk_guard;
-
-    # PiP
-    _dl_debug_initialize;
   }
   GLIBC_PRIVATE {
     # Those are in the dynamic linker, but used by libc.so.

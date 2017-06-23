@@ -308,6 +308,9 @@ struct rtld_global
      the loaded object might as well require a call to this function.
      At this time it is not anymore a problem to modify the tables.  */
   __rtld_lock_define_recursive (EXTERN, _dl_load_lock)
+#ifndef NO_PIP_WORKAROUND
+  EXTERN int _dl_load_lock_initialized;
+#endif
   /* This lock is used to keep __dl_iterate_phdr from inspecting the
      list of loaded objects while an object is added to or removed
      from that list.  */
