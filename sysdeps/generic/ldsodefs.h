@@ -260,7 +260,7 @@ struct rtld_global
 /* Non-shared code has no support for multiple namespaces.  */
 #ifdef SHARED
 #ifndef NO_PIP_WORKAROUND
-# define DL_NNS 256
+# define DL_NNS 400
 #else
 # define DL_NNS 16
 #endif
@@ -387,7 +387,7 @@ struct rtld_global
    list element.  A large number makes it almost certain take we never
    have to iterate beyond the first element in the slotinfo list.  */
 #ifndef NO_PIP_WORKAROUND
-#define TLS_SLOTINFO_SURPLUS (128)
+#define TLS_SLOTINFO_SURPLUS (300)
 #else
 #define TLS_SLOTINFO_SURPLUS (62)
 #endif
