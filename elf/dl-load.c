@@ -1611,6 +1611,7 @@ cannot enable executable stack as shared object requires");
   /* Now that the object is fully initialized add it to the object list.  */
   _dl_add_to_namespace_list (l, nsid);
 
+#ifdef AHAHA
 #ifndef NO_PIP_WORKAROUND	/* AH 2017/06/21 */
   /* Set up debugging before the debugger is notified for the first time.  */
 #ifdef ELF_MACHINE_DEBUG_SETUP
@@ -1621,6 +1622,7 @@ cannot enable executable stack as shared object requires");
     /* There is a DT_DEBUG entry in the dynamic section.  Fill it in
        with the run-time address of the r_debug structure  */
     l->l_info[DT_DEBUG]->d_un.d_ptr = (ElfW(Addr)) r;
+#endif
 #endif
 #endif
 
