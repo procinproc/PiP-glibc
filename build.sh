@@ -18,7 +18,7 @@ case $# in
 	;;
 esac
 
-: ${BUILD_PARALLELISM=4}
+: ${BUILD_PARALLELISM=`getconf _NPROCESSORS_ONLN`}
 
 case `uname -m` in
 aarch64)
