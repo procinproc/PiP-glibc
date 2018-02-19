@@ -254,6 +254,7 @@ libpthread {
 
     # PiP
     pip_clone_mostly_pthread;
+    pip_pthread_add_stack_user;
   };
 
   GLIBC_PRIVATE {
