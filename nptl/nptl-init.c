@@ -382,11 +382,7 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
   /* Initialize the list of all running threads with the main thread.  */
   /* AH 2017/12/20 only if this is the first time */
   /* AH  printf( "&stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", &__stack_user, __stack_user.next, __stack_user.prev, &pd->list, pd->list.next, pd->list.prev ); */
-  INIT_LIST_HEAD (&__stack_user);
-#ifndef NO_PIP_WORKAROUND
-  /* This is a quick hack for GDB testing. There must be lock */
-  if( pd->list.next != NULL ) list_del (&pd->list);
-#endif
+  if( __stack_user.next == NULL ) INIT_LIST_HEAD (&__stack_user);
   list_add (&pd->list, &__stack_user);
 
   /* Before initializing __stack_user, the debugger could not find us and
