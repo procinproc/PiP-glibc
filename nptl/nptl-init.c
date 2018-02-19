@@ -380,22 +380,10 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
   THREAD_SETMEM (pd, stackblock_size, (size_t) __libc_stack_end);
 
   /* Initialize the list of all running threads with the main thread.  */
-  /* AH
-  printf( "%d>>> %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev ); */
-  INIT_LIST_HEAD (&__stack_user);
-#ifndef NO_PIP_WORKAROUND
-  if( pd->list.next != NULL ) {
-    list_del (&pd->list);
-  }
-#endif
+  /* AH 2017/12/20 only if this is the first time */
+  /* AH  printf( "&stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", &__stack_user, __stack_user.next, __stack_user.prev, &pd->list, pd->list.next, pd->list.prev ); */
+  if( __stack_user.next == NULL ) INIT_LIST_HEAD (&__stack_user);
   list_add (&pd->list, &__stack_user);
-  /* AH
-  printf( "%d<<< %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev ); */
-
 
   /* Before initializing __stack_user, the debugger could not find us and
      had to set __nptl_initial_report_events.  Propagate its setting.  */
