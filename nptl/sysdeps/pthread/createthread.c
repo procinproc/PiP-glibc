@@ -2,6 +2,10 @@
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
+   Copyright of the PiP-related portions is:
+   $RIKEN_copyright: 2018 Riken Center for Computational Sceience, 
+	  System Software Devlopment Team. All rights researved$
+
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
