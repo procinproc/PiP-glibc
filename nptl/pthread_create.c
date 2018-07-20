@@ -3,7 +3,7 @@
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
    Copyright of the PiP-related portions is:
-   $RIKEN_copyright: 2018 Riken Center for Computational Sceience, 
+   $RIKEN_copyright: 2018 Riken Center for Computational Sceience,
 	  System Software Devlopment Team. All rights researved$
 
    The GNU C Library is free software; you can redistribute it and/or
@@ -60,26 +60,6 @@ unsigned int __nptl_nthreads = 1;
 
 /* Code to create the thread.  */
 #include <createthread.c>
-
-#ifndef NO_PIP_WORKAROUND
-void pip_pthread_add_stack_user(void);
-void pip_pthread_add_stack_user()
-{
-  struct pthread *pd = THREAD_SELF;
-#ifdef AH
-  printf( "%d>>> %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev );
-#endif
-  list_del (&pd->list);
-  list_add (&pd->list, &__stack_user);
-#ifdef AH
-  printf( "%d<<< %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev );
-#endif
-}
-#endif
 
 struct pthread *
 internal_function
@@ -266,6 +246,10 @@ start_thread (void *arg)
 
   /* Initialize pointers to locale data.  */
   __ctype_init ();
+
+#ifndef NO_PIP_WORKAROUND
+  pd->pid = pd->tid = INTERNAL_SYSCALL (set_tid_address, err, 1, &pd->tid);
+#endif
 
   /* Allow setxid from now onwards.  */
   if (__builtin_expect (atomic_exchange_acq (&pd->setxid_futex, 0) == -2, 0))
