@@ -27,4 +27,7 @@ script:
     export SRCDIR=$PWD;
     mkdir -p $HOME/build/PIP-glibc.build &&
     cd $HOME/build/PIP-glibc.build &&
-    env CC="gcc -L/usr/lib/x86_64-linux-gnu/nss/ -idirafter /usr/include/nspr -idirafter /usr/include/x86_64-linux-gnu" $SRCDIR/build.sh $SRCDIR /usr/pip'
+    env CC="gcc -L/usr/lib/x86_64-linux-gnu/nss/ -idirafter /usr/include/nspr -idirafter /usr/include/x86_64-linux-gnu" $SRCDIR/build.sh $SRCDIR /usr/pip >/tmp/log 2>&1;
+    status=$?;
+    tail -f 200 /tmp/log;
+    exit $status'
