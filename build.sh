@@ -26,14 +26,18 @@
 #	PREFIX: the install directory
 #
 
-case $# in
-2)	:;;
-*)	echo >&2 "Usage: ./`basename $0` <SRCDIR> <PREFIX>"
+usage()
+{
+	echo >&2 "Usage: ./`basename $0` [-bi] <SRCDIR> <PREFIX>"
+	echo >&2 "	-b      : build only, do not install"
+	echo >&2 "	-i      : install only, do not build"
 	echo >&2 "	<SRCDIR>: root directory of the GLIB source code"
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
-	;;
-esac
+}
+
+do_build=true
+do_install=true
 
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
@@ -62,11 +66,32 @@ x86_64)
 	;;
 esac
 
+case "$1" in
+-b)	do_install=false; shift;;
+-i)	do_build=false; shift;;
+-*)	usage;;
+esac
+
+case "$1" in
+-*)	usage;;
+esac
+
+case $# in
+2)	:;;
+*)	usage;;
+esac
+
 set -x
-make clean
-make distclean
-#
-$1/configure --prefix=$2 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
-#
-make -j ${BUILD_PARALLELISM} ${opt_mflags}
-make install ${opt_mflags}
+
+if $do_build; then
+	make clean
+	make distclean
+
+	$1/configure --prefix=$2 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
+
+	make -j ${BUILD_PARALLELISM} ${opt_mflags}
+fi
+
+if $do_install; then
+	make install ${opt_mflags}
+fi
