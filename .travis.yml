@@ -1,0 +1,38 @@
+sudo: required
+dist: precise
+language: c
+compiler:
+  - gcc
+install:
+  - sudo apt-get install build-essential  devscripts libnss3-dev systemtap-sdt-dev
+  - sudo apt-get build-dep libc6
+  - curl --output /tmp/make-4.1.tar.gz https://ftp.gnu.org/gnu/make/make-4.1.tar.gz
+  - ( sudo mkdir -p /usr/make-4.1 &&
+      cd $HOME/build &&
+      tar pxf /tmp/make-4.1.tar.gz &&
+      cd make-4.1 &&
+      ./configure --prefix=/usr/make-4.1 &&
+      make &&
+      sudo make install )
+before_script:
+  - echo $TRAVIS_COMMIT
+  - echo $TRAVIS_TAG
+  - echo $TRAVIS_BRANCH
+  - echo $TRAVIS_BUILD_NUMBER
+  - echo $TRAVIS_REPO_SLUG
+  - pwd
+script:
+  - sudo sh -c '
+    export PATH=/usr/make-4.1/bin:$PATH;
+    export SRCDIR=$PWD;
+    mkdir -p $HOME/build/PIP-glibc.build &&
+    cd $HOME/build/PIP-glibc.build &&
+    env CC="gcc -L/usr/lib/x86_64-linux-gnu/nss/ -idirafter /usr/include/nspr -idirafter /usr/include/x86_64-linux-gnu" $SRCDIR/build.sh $SRCDIR /usr/pip >/tmp/log 2>&1 &
+    pid=$!;
+    while tail -1 /tmp/log; do sleep 10; done &
+    logger=$!;
+    wait $pid;
+    status=$?;
+    kill $logger;
+    tail -200 /tmp/log;
+    exit $status'
