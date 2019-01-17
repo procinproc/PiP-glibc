@@ -46,7 +46,7 @@ do_install=true
 case `uname -m` in
 aarch64)
 	opt_mtune=
-	opt_add_ons=ports,nptl,c_stubs,libidn
+	opt_add_ons=nptl,c_stubs,libidn
 	opt_build=aarch64-redhat-linux
 	opt_multi_arch=
 	opt_systemtap=--enable-systemtap
@@ -54,7 +54,7 @@ aarch64)
 	;;
 x86_64)
 	opt_mtune=-mtune=generic
-	opt_add_ons=ports,nptl,rtkaio,c_stubs,libidn
+	opt_add_ons=nptl,rtkaio,c_stubs,libidn
 	opt_build=x86_64-redhat-linux
 	opt_multi_arch=--enable-multi-arch
 	opt_systemtap=--enable-systemtap
