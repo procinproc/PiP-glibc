@@ -605,18 +605,7 @@ pip_clone_mostly_pthread (
      size_t stack_size,
      void *(*start_routine) (void *),
      void *arg,
-     pid_t *pidp);
-
-int
-pip_clone_mostly_pthread (newthread, clone_flags, core_no, stack_size,
-			  start_routine, arg, pidp)
-     pthread_t *newthread;
-     int clone_flags;
-     int core_no;
-     size_t stack_size;
-     void *(*start_routine) (void *);
-     void *arg;
-     pid_t *pidp;
+     pid_t *pidp)
 {
   int rv;
   pthread_attr_t attr, *a = NULL;
