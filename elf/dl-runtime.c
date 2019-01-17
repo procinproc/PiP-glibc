@@ -342,7 +342,11 @@ _dl_profile_fixup (
 	    }
 	  else
 	    /* Set all bits since this symbol binding is not interesting.  */
+#ifndef NO_PIP_WORKAROUND
+	    reloc_result->enterexit = ~0;
+#else
 	    reloc_result->enterexit = (1u << DL_NNS) - 1;
+#endif
 	}
 #endif
 
