@@ -27,7 +27,8 @@
 
 usage()
 {
-	echo >&2 "Usage: ./`basename $0` [-bi] <PREFIX>"
+	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
+	echo >&2 "       ./`basename $0`  -i"
 	echo >&2 "	-b      : build only, do not install"
 	echo >&2 "	-i      : install only, do not build"
 	echo >&2 "	<PREFIX>: the install directory"
@@ -75,10 +76,17 @@ case "$1" in
 -*)	usage;;
 esac
 
-case $# in
-1)	:;;
-*)	usage;;
-esac
+if $do_build; then
+	case $# in
+	1)	:;;
+	*)	usage;;
+	esac
+else
+	case $# in
+	0)	:;;
+	*)	usage;;
+	esac
+fi
 
 set -x
 
