@@ -20,18 +20,16 @@
 # The configure options specified in this script are the same with those of
 # RedHat (and CentOS) distribution (By N. Soda at SRA)
 #
-# ./build.sh SRCDIR PREFIX
+# ./build.sh PREFIX
 # Arguments:
-#	SRCDIR: root directory of the GLIB source code
 #	PREFIX: the install directory
 #
 
 usage()
 {
-	echo >&2 "Usage: ./`basename $0` [-bi] <SRCDIR> <PREFIX>"
+	echo >&2 "Usage: ./`basename $0` [-bi] <PREFIX>"
 	echo >&2 "	-b      : build only, do not install"
 	echo >&2 "	-i      : install only, do not build"
-	echo >&2 "	<SRCDIR>: root directory of the GLIB source code"
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
@@ -39,6 +37,7 @@ usage()
 do_build=true
 do_install=true
 
+: ${SRCDIR:=`dirname $0`}
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
@@ -77,7 +76,7 @@ case "$1" in
 esac
 
 case $# in
-2)	:;;
+1)	:;;
 *)	usage;;
 esac
 
@@ -87,7 +86,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$1/configure --prefix=$2 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
+	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
 
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
 fi
