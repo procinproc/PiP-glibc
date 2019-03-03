@@ -66,6 +66,12 @@ x86_64)
 	;;
 esac
 
+if [ -f /etc/debian_version ]; then
+	opt_distro=--disable-werror
+else
+	opt_distro=
+fi
+
 case "$1" in
 -b)	do_install=false; shift;;
 -i)	do_build=false; shift;;
@@ -94,7 +100,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
+	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
 
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
 fi

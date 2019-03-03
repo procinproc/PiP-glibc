@@ -118,8 +118,10 @@ generated += mtrace-tst-leaks.out tst-leaks.mtrace \
 
 include ../Rules
 
+ifeq (yes,$(have-ssp-strong))
 CFLAGS-libresolv += -fstack-protector-strong
 CFLAGS-libnss_dns += -fstack-protector-strong
+endif
 CFLAGS-res_hconf.c = -fexceptions
 
 # The DNS NSS modules needs the resolver.
