@@ -247,10 +247,6 @@ start_thread (void *arg)
   /* Initialize pointers to locale data.  */
   __ctype_init ();
 
-#ifndef NO_PIP_WORKAROUND
-  pd->pid = pd->tid = INTERNAL_SYSCALL (set_tid_address, err, 1, &pd->tid);
-#endif
-
   /* Allow setxid from now onwards.  */
   if (__builtin_expect (atomic_exchange_acq (&pd->setxid_futex, 0) == -2, 0))
     lll_futex_wake (&pd->setxid_futex, 1, LLL_PRIVATE);
