@@ -89,7 +89,7 @@ do_clone (struct pthread *pd, const struct pthread_attr *attr,
   int rc = ARCH_CLONE (fct, STACK_VARIABLES_ARGS, clone_flags,
 		       pd, &pd->tid, TLS_VALUE, &pd->tid);
 
-#ifdef PREPARE_CREATE
+#ifndef NO_PIPCLONE_WORKAROUND
   ptid = pd->tid; /* do this ASAP to narrow the window of race condition */
 #endif
   if (__builtin_expect (rc == -1, 0))
