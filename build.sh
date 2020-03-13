@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# $RIKEN_copyright: 2018 Riken Center for Computational Sceience, 
+# $RIKEN_copyright: 2018 Riken Center for Computational Sceience,
 # 	  System Software Devlopment Team. All rights researved$
 #
 # The GNU C Library is free software; you can redistribute it and/or
@@ -24,6 +24,18 @@
 # Arguments:
 #	PREFIX: the install directory
 #
+
+BUILD_TRAP_SIGS='1 2 14 15';
+
+cleanup()
+{
+    echo;
+    echo "cleaning up ..."
+    rm -f -r *;
+    exit 2;
+}
+
+trap cleanup $BUILD_TRAP_SIGS;
 
 usage()
 {
@@ -102,7 +114,19 @@ if $do_build; then
 
 	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
 
+	set +e
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	mkst=$?;
+	set -e
+# workaround
+	if [ $mkst != 0 ]; then
+	    echo
+	    echo '===== workaround ===='
+	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
+	    echo '===== try again ===='
+	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	fi
+
 fi
 
 if $do_install; then
