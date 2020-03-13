@@ -122,9 +122,12 @@ if $do_build; then
 	if [ $mkst != 0 ]; then
 	    echo
 	    echo '===== workaround ===='
+	    cp $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
 	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
 	    echo '===== try again ===='
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	    echo '===== undo workaround ===='
+	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 	fi
 
 fi
