@@ -126,12 +126,16 @@ if $do_build; then
 	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
 	    echo '===== try again ===='
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
-	    echo '===== undo workaround ===='
-	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 	fi
 
 fi
 
 if $do_install; then
 	make install ${opt_mflags}
+fi
+
+if [ -f $SRCDIR/intl/plural.c.NG ]; then
+    echo '===== undo workaround ===='
+    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+    rm $SRCDIR/intl/plural.c.NG
 fi
