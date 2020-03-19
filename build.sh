@@ -108,7 +108,21 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" --with-headers=/usr/include --enable-kernel=3.2 '--with-nonshared-cflags= -Wp,-D_FORTIFY_SOURCE=2' --enable-bind-now --build=${machine}-redhat-linux --enable-stack-protector=strong ${opt_static_pie} --enable-tunables --enable-systemtap ${opt_cet} --disable-profile --disable-crypt
+	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
+		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
+		--prefix=$1 \
+		--with-headers=/usr/include \
+		--enable-kernel=3.2 \
+		--with-nonshared-cflags=' -Wp,-D_FORTIFY_SOURCE=2' \
+		--enable-bind-now \
+		--build=${machine}-redhat-linux \
+		--enable-stack-protector=strong \
+		${opt_static_pie} \
+		--enable-tunables \
+		--enable-systemtap \
+		${opt_cet} \
+		--disable-profile \
+		--disable-crypt
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
 
