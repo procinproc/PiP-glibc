@@ -56,16 +56,17 @@ do_install=true
 : ${CXX:=g++}
 : ${CFLAGS:='-O2 -g'}
 
-case `uname -m` in
+machine=`uname -m`
+case ${machine} in
 aarch64)
 	opt_machine_flags=
-	opt_mtune=
-	opt_build=aarch64-redhat-linux
+	opt_static_pie=
+	opt_cet=
 	;;
 x86_64)
-	opt_machine_flags=-m64
-	opt_mtune=-mtune=generic
-	opt_build=x86_64-redhat-linux
+	opt_machine_flags='-m64 -mtune=generic'
+	opt_static_pie=--enable-static-pie
+	opt_cet=--enable-cet
 	;;
 *)
 	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
@@ -107,7 +108,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} ${opt_mtune} -fasynchronous-unwind-tables -fstack-clash-protection" --with-headers=/usr/include --enable-kernel=3.2 '--with-nonshared-cflags= -Wp,-D_FORTIFY_SOURCE=2' --enable-bind-now --build=${opt_build} --enable-stack-protector=strong --enable-static-pie --enable-tunables --enable-systemtap --enable-cet --disable-profile --disable-crypt
+	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" --with-headers=/usr/include --enable-kernel=3.2 '--with-nonshared-cflags= -Wp,-D_FORTIFY_SOURCE=2' --enable-bind-now --build=${machine}-redhat-linux --enable-stack-protector=strong ${opt_static_pie} --enable-tunables --enable-systemtap ${opt_cet} --disable-profile --disable-crypt
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
 
