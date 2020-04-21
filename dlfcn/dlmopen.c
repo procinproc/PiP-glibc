@@ -89,11 +89,6 @@ __dlmopen (Lmid_t nsid, const char *file, int mode DL_CALLER_DECL)
   args.mode = mode;
   args.caller = DL_CALLER;
 
-#ifdef AH
-  void ah_print_size(void);
-  ah_print_size();
-#endif
-
 # ifdef SHARED
   return _dlerror_run (dlmopen_doit, &args) ? NULL : args.new;
 # else
@@ -110,12 +105,4 @@ __dlmopen (Lmid_t nsid, const char *file, int mode DL_CALLER_DECL)
 strong_alias (__dlmopen, dlmopen)
 # endif
 
-#ifdef AH
-#include <stdio.h>
-void ah_print_size( void ) {
-  fprintf( stderr,
-	   "sizeof(struct link_namespaces)=%d\n",
-	   (int) sizeof(struct link_namespaces) );
-}
-#endif
 #endif

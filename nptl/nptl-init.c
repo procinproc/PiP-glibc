@@ -381,18 +381,8 @@ __pthread_initialize_minimal_internal (int argc, char **argv, char **envp)
 
   /* Initialize the list of all running threads with the main thread.  */
   INIT_LIST_HEAD (&__stack_user);
-#ifdef AH
-  printf( "%d>>> %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev );
-#endif
   if( pd->list.next != NULL ) list_del( &pd->list );
   list_add (&pd->list, &__stack_user);
-#ifdef AH
-  printf( "%d<<< %s &stack_user=%p(%p,%p)  pd=%p(%p,%p)\n", getpid(), __func__,
-	  &__stack_user, __stack_user.next, __stack_user.prev,
-	  &pd->list, pd->list.next, pd->list.prev );
-#endif
 
   /* Before initializing __stack_user, the debugger could not find us and
      had to set __nptl_initial_report_events.  Propagate its setting.  */
