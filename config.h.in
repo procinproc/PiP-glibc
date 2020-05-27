@@ -259,4 +259,7 @@
    in i386 6 argument syscall issue).  */
 #define CAN_USE_REGISTER_ASM_EBP 0
 
+/* Enable patch for Process-in-Process (PiP)  */
+#define ENABLE_PIP 0
+
 #endif

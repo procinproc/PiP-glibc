@@ -478,6 +478,19 @@ AC_ARG_ENABLE([cet],
 	      [enable_cet=$enableval],
 	      [enable_cet=no])
 
+# configure option for Process-in-Process (PiP)
+
+AC_ARG_ENABLE([process-in-process],
+	      AC_HELP_STRING([--enable-process-in-process],
+			     [enable Process-in-Proicess patch]),
+	      [enable_pip=$enableval],
+	      [enable_pip=no])
+
+AC_SUBST(enable_pip)
+if test "$enable_pip" = yes; then
+  AC_DEFINE(ENABLE_PIP)
+fi
+
 # We keep the original values in `$config_*' and never modify them, so we
 # can write them unchanged into config.make.  Everything else uses
 # $machine, $vendor, and $os, and changes them whenever convenient.

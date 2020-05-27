@@ -292,6 +292,21 @@ dl_open_worker (void *a)
   _dl_debug_state ();
   LIBC_PROBE (map_complete, 3, args->nsid, r, new);
 
+
+#ifdef ENABLE_PIP
+  /* Set up debugging before the debugger is notified for the first time.  */
+  /* the following codelet is the copy from rtld.c */
+#ifdef ELF_MACHINE_DEBUG_SETUP
+  /* Some machines (e.g. MIPS) don't use DT_DEBUG in this way.  */
+  ELF_MACHINE_DEBUG_SETUP (new, r);
+#else
+  if (new->l_info[DT_DEBUG] != NULL)
+    /* There is a DT_DEBUG entry in the dynamic section.  Fill it in
+       with the run-time address of the r_debug structure  */
+    new->l_info[DT_DEBUG]->d_un.d_ptr = (ElfW(Addr)) r;
+#endif
+#endif
+
   _dl_open_check (new);
 
   /* Print scope information.  */

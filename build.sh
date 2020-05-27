@@ -27,6 +27,30 @@
 
 BUILD_TRAP_SIGS='1 2 14 15';
 
+pkgs_installed="`yum list available 2>/dev/null | cut -d ' ' -f 1 | cut -d '.' -f 1`";
+pkgs_needed="systemtap-sdt-devel readline-devel ncurses-devel rpm-devel"
+
+pkgfail=false;
+nopkg=false;
+for pkgn in $pkgs_needed; do
+    nopkg=true;
+    for pkgi in $pkgs_installed; do
+	if [ $pkgi == $pkgn ]; then
+	    nopkg=false
+	    break
+	fi
+    done
+    if [ $nopkg == true ]; then
+	pkgfail=true;
+	echo "$pkgn must be installed"
+    fi
+done
+if [ $pkgfail == true ]; then
+    exit 1;
+fi
+
+echo "All required Yum packages are found."
+
 cleanup()
 {
     echo;
@@ -122,7 +146,8 @@ if $do_build; then
 		--enable-systemtap \
 		${opt_cet} \
 		--disable-profile \
-		--disable-crypt
+		--disable-crypt \
+		--enable-process-in-process
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
 

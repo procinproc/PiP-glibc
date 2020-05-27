@@ -314,7 +314,11 @@ _dl_profile_fixup (
 
 	      /* Keep track whether there is any interest in tracing
 		 the call in the lower two bits.  */
+#ifdef ENABLE_PIP
+	      assert (DL_NNS_ORG * 2 <= sizeof (reloc_result->flags) * 8);
+#else
 	      assert (DL_NNS * 2 <= sizeof (reloc_result->flags) * 8);
+#endif
 	      assert ((LA_SYMB_NOPLTENTER | LA_SYMB_NOPLTEXIT) == 3);
 	      reloc_result->enterexit = LA_SYMB_NOPLTENTER | LA_SYMB_NOPLTEXIT;
 
@@ -366,7 +370,11 @@ _dl_profile_fixup (
 	    }
 	  else
 	    /* Set all bits since this symbol binding is not interesting.  */
+# ifdef ENABLE_PIP
+	    reloc_result->enterexit = (1u << DL_NNS_ORG) - 1;
+# else
 	    reloc_result->enterexit = (1u << DL_NNS) - 1;
+# endif
 	}
 #endif
 
