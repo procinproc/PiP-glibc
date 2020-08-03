@@ -27,29 +27,29 @@
 
 BUILD_TRAP_SIGS='1 2 14 15';
 
-pkgs_installed="`yum list available 2>/dev/null | cut -d ' ' -f 1 | cut -d '.' -f 1`";
-pkgs_needed="systemtap-sdt-devel readline-devel ncurses-devel rpm-devel"
+check_packages() {
+    pkgs_installed="`yum list available 2>/dev/null | cut -d ' ' -f 1 | cut -d '.' -f 1`";
+    pkgs_needed="systemtap*-devel readline-devel ncurses-devel rpm-devel"
 
-pkgfail=false;
-nopkg=false;
-for pkgn in $pkgs_needed; do
-    nopkg=true;
-    for pkgi in $pkgs_installed; do
-	if [ $pkgi == $pkgn ]; then
-	    nopkg=false
-	    break
+    pkgfail=false;
+    for pkgn in $pkgs_needed; do
+	nopkg=true;
+	for pkgi in $pkgs_installed; do
+	    case $pkgi in
+		$pkgn) nopkg=false;
+		       break;;
+	    esac
+	done
+	if [ $nopkg == true ]; then
+	    pkgfail=true;
+	    echo "$pkgn must be installed"
 	fi
     done
-    if [ $nopkg == true ]; then
-	pkgfail=true;
-	echo "$pkgn must be installed"
+    if [ $pkgfail == true ]; then
+	exit 1;
     fi
-done
-if [ $pkgfail == true ]; then
-    exit 1;
-fi
-
-echo "All required Yum packages are found."
+    echo "All required Yum packages are found."
+}
 
 cleanup()
 {
