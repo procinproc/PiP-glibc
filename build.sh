@@ -89,7 +89,7 @@ aarch64)
 	;;
 x86_64)
 	opt_machine_flags='-m64 -mtune=generic'
-	opt_static_pie=--enable-static-pie
+	opt_static_pie=
 	opt_cet=--enable-cet
 	;;
 *)
