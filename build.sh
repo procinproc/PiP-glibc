@@ -94,6 +94,12 @@ case "$1" in
 -*)	usage;;
 esac
 
+prefix=$1
+
+if [ x"$prefix" == x ]; then
+    usage;
+fi
+
 if $do_build; then
 	case $# in
 	1)	:;;
@@ -112,7 +118,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$1 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
+	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
 
 	set +e
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
@@ -128,14 +134,19 @@ if $do_build; then
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
 	fi
 
+	sed "s|@GLIBC_LIBDIR@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
 fi
 
 if $do_install; then
 	make install ${opt_mflags}
-fi
 
-if [ -f $SRCDIR/intl/plural.c.NG ]; then
-    echo '===== undo workaround ===='
-    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
-    rm $SRCDIR/intl/plural.c.NG
+	cp $SRCDIR/piplnlibs.sh $prefix/bin
+	chmod +x $prefix/bin/piplnlibs.sh
+	$prefix/bin/piplnlibs.sh
+
+	if [ -f $SRCDIR/intl/plural.c.NG ]; then
+	    echo '===== undo workaround ===='
+	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+	    rm $SRCDIR/intl/plural.c.NG
+	fi
 fi
