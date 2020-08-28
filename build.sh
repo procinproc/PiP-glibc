@@ -64,7 +64,7 @@ trap cleanup $BUILD_TRAP_SIGS;
 usage()
 {
 	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
-	echo >&2 "       ./`basename $0`  -i <PREFIX>"
+	echo >&2 "       ./`basename $0`  -i"
 	echo >&2 "	-b      : build only, do not install"
 	echo >&2 "	-i      : install only, do not build"
 	echo >&2 "	<PREFIX>: the install directory"
