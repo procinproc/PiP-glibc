@@ -64,7 +64,7 @@ trap cleanup $BUILD_TRAP_SIGS;
 usage()
 {
 	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
-	echo >&2 "       ./`basename $0`  -i"
+	echo >&2 "       ./`basename $0`  -i <PREFIX>"
 	echo >&2 "	-b      : build only, do not install"
 	echo >&2 "	-i      : install only, do not build"
 	echo >&2 "	<PREFIX>: the install directory"
@@ -90,7 +90,7 @@ aarch64)
 x86_64)
 	opt_machine_flags='-m64 -mtune=generic'
 	opt_static_pie=
-	opt_cet=--enable-cet
+	opt_cet=
 	;;
 *)
 	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
@@ -114,6 +114,12 @@ case "$1" in
 -*)	usage;;
 esac
 
+prefix=$1
+
+if [ x"$prefix" == x ]; then
+    usage;
+fi
+
 if $do_build; then
 	case $# in
 	1)	:;;
@@ -134,7 +140,7 @@ if $do_build; then
 
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
-		--prefix=$1 \
+		--prefix=$prefix \
 		--with-headers=/usr/include \
 		--enable-kernel=3.2 \
 		--with-nonshared-cflags=' -Wp,-D_FORTIFY_SOURCE=2' \
@@ -151,8 +157,13 @@ if $do_build; then
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
 
+	sed "s|@GLIBC_LIBDIR@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
+
 fi
 
 if $do_install; then
 	make install
+	cp $SRCDIR/piplnlibs.sh $prefix/bin
+	chmod +x $prefix/bin/piplnlibs.sh
+	$prefix/bin/piplnlibs.sh
 fi
