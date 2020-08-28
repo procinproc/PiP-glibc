@@ -136,7 +136,7 @@ if $do_build; then
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
 	fi
 
-	sed "s|@GLIBC_LIBDIR@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
+	sed "s|@GLIBC_LIBDIR@|$prefix/lib|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
 fi
 
 if $do_install; then
