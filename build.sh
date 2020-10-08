@@ -27,30 +27,6 @@
 
 BUILD_TRAP_SIGS='1 2 14 15';
 
-check_packages() {
-    pkgs_installed="`yum list available 2>/dev/null | cut -d ' ' -f 1 | cut -d '.' -f 1`";
-    pkgs_needed="systemtap*-devel readline-devel ncurses-devel rpm-devel"
-
-    pkgfail=false;
-    for pkgn in $pkgs_needed; do
-	nopkg=true;
-	for pkgi in $pkgs_installed; do
-	    case $pkgi in
-		$pkgn) nopkg=false;
-		       break;;
-	    esac
-	done
-	if [ $nopkg == true ]; then
-	    pkgfail=true;
-	    echo "$pkgn must be installed"
-	fi
-    done
-    if [ $pkgfail == true ]; then
-	exit 1;
-    fi
-    echo "All required Yum packages are found."
-}
-
 cleanup()
 {
     echo;
@@ -78,19 +54,23 @@ do_install=true
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
-: ${CFLAGS:='-O2 -g'}
 
-machine=`uname -m`
-case ${machine} in
+case `uname -m` in
 aarch64)
-	opt_machine_flags=
-	opt_static_pie=
-	opt_cet=
+	opt_mtune=
+	opt_add_ons=nptl,c_stubs,libidn
+	opt_build=aarch64-redhat-linux
+	opt_multi_arch=
+	opt_systemtap=--enable-systemtap
+	opt_mflags=PARALLELMFLAGS=
 	;;
 x86_64)
-	opt_machine_flags='-m64 -mtune=generic'
-	opt_static_pie=
-	opt_cet=
+	opt_mtune=-mtune=generic
+	opt_add_ons=nptl,rtkaio,c_stubs,libidn
+	opt_build=x86_64-redhat-linux
+	opt_multi_arch=--enable-multi-arch
+	opt_systemtap=--enable-systemtap
+	opt_mflags=
 	;;
 *)
 	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
@@ -138,32 +118,37 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
-		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
-		--prefix=$prefix \
-		--with-headers=/usr/include \
-		--enable-kernel=3.2 \
-		--with-nonshared-cflags=' -Wp,-D_FORTIFY_SOURCE=2' \
-		--enable-bind-now \
-		--build=${machine}-redhat-linux \
-		--enable-stack-protector=strong \
-		${opt_static_pie} \
-		--enable-tunables \
-		--enable-systemtap \
-		${opt_cet} \
-		--disable-profile \
-		--disable-crypt \
-		--enable-process-in-process
+	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
 
-	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
+	set +e
+	make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	mkst=$?;
+	set -e
+# workaround
+	if [ $mkst != 0 ]; then
+	    echo
+	    echo '===== workaround ===='
+	    if [ -f $SRCDIR/intl/plural.c ]; then
+		cp $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
+	    fi
+	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
+	    echo '===== try again ===='
+	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	fi
 
-	sed "s|@GLIBC_LIBDIR@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
-
+	sed "s|@GLIBC_LIBDIR@|$prefix/lib|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
 fi
 
 if $do_install; then
-	make install
+	make install ${opt_mflags}
+
 	cp $SRCDIR/piplnlibs.sh $prefix/bin
 	chmod +x $prefix/bin/piplnlibs.sh
 	$prefix/bin/piplnlibs.sh
+
+	if [ -f $SRCDIR/intl/plural.c.NG ]; then
+	    echo '===== undo workaround ===='
+	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+	    rm $SRCDIR/intl/plural.c.NG
+	fi
 fi
