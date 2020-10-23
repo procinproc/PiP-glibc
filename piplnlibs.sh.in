@@ -51,8 +51,6 @@
 ### \arg \b  LD_LIBRARY_PATH If PIP_LIBRARY_PATH is not set, LD_LIBRARY_PATH is used instead.
 ###
 
-glibc_default_libdir=/lib64
-
 exit_status=0
 opt_silent=false
 opt_remove=false
@@ -60,7 +58,10 @@ opt_add=false
 add_libdir=
 program_name=`basename $0`
 
-glibc_libdir=@GLIBC_LIBDIR@
+glibc_prefix=@GLIBC_PREFIX@
+
+glibc_libdir=${glibc_prefix}/lib
+glibc_default_libdir=/lib64
 
 usage()
 {
@@ -79,7 +80,7 @@ do
 			add_dir=$option
 		esac
 		case $option in -*[!rs]*)
-			echo >&2 "$program_name: error: invalid option $option"
+			echo "$program_name: error: invalid option $option" >&2
 			usage;;
 		esac;;
 	*)	glibc_libdir=$option;;
@@ -87,12 +88,13 @@ do
 done
 
 if [ ! -d $glibc_libdir ] || [ ! -f $glibc_libdir/libc.so ]; then
-    usage;
+    echo "$glibc_libdir does not seem to be Glibc libdir" >&2
+    exit 1
 fi
 
-if [ x"$glibc_libdir" = x"$glibc_default_libdir" ]; then
-	echo >&2 "$program_name: warning:" \
-		"nothing to do, because glibc_libdir = ${glibc_default_libdir}"
+if [ x"$glibc_libdir" == x"$glibc_default_libdir" ]; then
+	echo "$program_name: warning:" \
+	     "nothing to do, because glibc_libdir = ${glibc_default_libdir}" >&2
 	exit $exit_status
 fi
 
@@ -156,5 +158,9 @@ do
 		fi
 	done
 done
+
+if [ $exit_status == 0 ]; then
+    echo "$program_name succeeded"
+fi
 
 exit $exit_status
