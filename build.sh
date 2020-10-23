@@ -135,20 +135,22 @@ if $do_build; then
 	    echo '===== try again ===='
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
 	fi
-
-	sed "s|@GLIBC_LIBDIR@|$prefix/lib|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
+# make piplnlibs
+	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${SRCDIR}/piplnlibs.sh
 fi
 
 if $do_install; then
 	make install ${opt_mflags}
 
-	cp $SRCDIR/piplnlibs.sh $prefix/bin
-	chmod +x $prefix/bin/piplnlibs.sh
-	$prefix/bin/piplnlibs.sh
-
+# undo workaround
 	if [ -f $SRCDIR/intl/plural.c.NG ]; then
 	    echo '===== undo workaround ===='
 	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 	    rm $SRCDIR/intl/plural.c.NG
 	fi
+
+# install piplnlibs.sh and invoke it
+	cp $SRCDIR/piplnlibs.sh $prefix/bin
+	chmod +x $prefix/bin/piplnlibs.sh
+	$prefix/bin/piplnlibs.sh
 fi
