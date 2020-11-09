@@ -50,10 +50,55 @@ usage()
 do_build=true
 do_install=true
 
-: ${SRCDIR:=`dirname $0`}
+dir=`dirname $0`
+srcdir=`cd $dir; pwd`
+
+: ${SRCDIR:=${srcdir}}
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
+
+echo "Checking required packages ... "
+
+if ! [ -f /etc/redhat-release ]; then
+    echo "Not a RedHat distribution"
+    exit 1
+fi
+read redhat_release < /etc/redhat-release
+redhat_version=`expr "${redhat_release}" : ".*release \([0-9]\)"`
+case $redhat_version in
+    7) pkgs_needed="nss";;
+    8) pkgs_needed="nss";;
+    *) echo "Unsupported RedHat version ($redhat_version)";
+	exit 1;;
+esac
+
+enable_nss_crypt=""
+
+pkg_check=true
+nopkg=false
+for pkgn in $pkgs_needed; do
+    if yum list $pkgn >/dev/null 2>&1; then
+	case ${pkgn} in
+	    nss) nss_config=`which nss-config 2> /dev/null`;
+		if [ z"${nss_config}" != z -a -x ${nss_config} ]; then 
+		     enable_nss_crypt="--enable_nss_crypt"
+	         fi;;
+	esac
+    elif ! [ -d ${SRCDIR}/header-import/${pkgn} ]; then
+	    CPPFLAGS="-I${SRCDIR}/header-import/${pkgn}"
+    else
+        echo "'$pkgn' package is not installed but required"
+	pkg_check=false
+    fi
+done
+
+if $pkg_check; then
+    echo "All required packages found"
+else
+    echo "Some packages are unable to find"
+    exit 1
+fi
 
 case `uname -m` in
 aarch64)
@@ -118,7 +163,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt ${opt_distro}
+	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
 
 	set +e
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
@@ -153,4 +198,8 @@ if $do_install; then
 	cp $SRCDIR/piplnlibs.sh $prefix/bin
 	chmod +x $prefix/bin/piplnlibs.sh
 	$prefix/bin/piplnlibs.sh
+fi
+
+if [ x${enable_nss_crypt} == x ]; then
+    echo "Warning: '--enable_nns_crypt' has been disabled"
 fi
