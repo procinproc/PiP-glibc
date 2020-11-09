@@ -78,11 +78,11 @@ enable_nss_crypt=""
 pkg_check=true
 nopkg=false
 for pkgn in $pkgs_needed; do
-    if yum list $pkgn >/dev/null 2>&1; then
+    if yum list installed $pkgn >/dev/null 2>&1; then
 	case ${pkgn} in
 	    nss) nss_config=`which nss-config 2> /dev/null`;
-		if [ z"${nss_config}" != z -a -x ${nss_config} ]; then 
-		     enable_nss_crypt="--enable_nss_crypt"
+		if [ z"${nss_config}" != z -a -x ${nss_config} ]; then
+		     enable_nss_crypt="--enable-nss-crypt"
 	         fi;;
 	esac
     elif ! [ -d ${SRCDIR}/header-import/${pkgn} ]; then
