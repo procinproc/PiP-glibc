@@ -96,7 +96,7 @@ done
 if $pkg_check; then
     echo "All required packages found"
 else
-    echo "Some packages are unable to find"
+    echo "Some packages are missing"
     exit 1
 fi
 
