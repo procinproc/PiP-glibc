@@ -58,8 +58,6 @@ srcdir=`cd $dir; pwd`
 : ${CC:=gcc}
 : ${CXX:=g++}
 
-echo "Checking required packages ... "
-
 if ! [ -f /etc/redhat-release ]; then
     echo "Not a RedHat distribution"
     exit 1
@@ -67,13 +65,16 @@ fi
 read redhat_release < /etc/redhat-release
 redhat_version=`expr "${redhat_release}" : ".*release \([0-9]\)"`
 case $redhat_version in
-    7) pkgs_needed="nss";;
-    8) pkgs_needed="nss";;
+    7) pkgs_needed="nss systemtap";;
+    8) pkgs_needed="nss systemtap";;
     *) echo "Unsupported RedHat version ($redhat_version)";
 	exit 1;;
 esac
 
-enable_nss_crypt=""
+echo "Checking required packages ... "
+
+enable_nss_crypt=
+enable_systemtap=
 
 pkg_check=true
 nopkg=false
@@ -91,6 +92,11 @@ for pkgn in $pkgs_needed; do
         echo "'$pkgn' package is not installed but required"
 	pkg_check=false
     fi
+    if [ ${pkgs} == "systemtap" ]; then
+	if [ -f /usr/include/sys/sdt.h ]; then
+	    enable_systemtap="--enable-systemtap"
+	fi
+    fi
 done
 
 if $pkg_check; then
@@ -106,7 +112,6 @@ aarch64)
 	opt_add_ons=nptl,c_stubs,libidn
 	opt_build=aarch64-redhat-linux
 	opt_multi_arch=
-	opt_systemtap=--enable-systemtap
 	opt_mflags=PARALLELMFLAGS=
 	;;
 x86_64)
@@ -114,7 +119,6 @@ x86_64)
 	opt_add_ons=nptl,rtkaio,c_stubs,libidn
 	opt_build=x86_64-redhat-linux
 	opt_multi_arch=--enable-multi-arch
-	opt_systemtap=--enable-systemtap
 	opt_mflags=
 	;;
 *)
@@ -163,7 +167,7 @@ if $do_build; then
 	make clean
 	make distclean
 
-	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
+	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${enable_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
 
 	set +e
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
