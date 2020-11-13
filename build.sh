@@ -107,30 +107,20 @@ fi
 case "$1" in
 -b)	do_install=false; shift;;
 -i)	do_build=false; shift;;
+--prefix=*)
+    	prefix=`expr "$1" : "--prefix=\(.*\)"`; shift;;
 -*)	usage;;
+*)	prefix=$1;;
 esac
+
+if [ x"$prefix" == x ]; then
+    echo >&2 "Error: <PREFIX> must be specifgied"
+    usage;
+fi
 
 case "$1" in
 -*)	usage;;
 esac
-
-prefix=$1
-
-if [ x"$prefix" == x ]; then
-    usage;
-fi
-
-if $do_build; then
-	case $# in
-	1)	:;;
-	*)	usage;;
-	esac
-else
-	case $# in
-	0)	:;;
-	*)	usage;;
-	esac
-fi
 
 set -x
 
