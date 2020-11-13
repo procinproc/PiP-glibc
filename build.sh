@@ -58,6 +58,19 @@ srcdir=`cd $dir; pwd`
 : ${CC:=gcc}
 : ${CXX:=g++}
 
+case "$1" in
+-b)	do_install=false; shift;;
+-i)	do_build=false; shift;;
+--prefix=*)	prefix=`expr "$1" : "--prefix=\(.*\)"`;;
+-*)	usage;;
+*)	prefix=$1;;
+esac
+
+if [ x"$prefix" == x ]; then
+    echo >&2 "Error: <PREFIX> must be specifgied"
+    usage;
+fi
+
 if ! [ -f /etc/redhat-release ]; then
     echo "Not a RedHat distribution"
     exit 1
@@ -92,7 +105,7 @@ for pkgn in $pkgs_needed; do
         echo "'$pkgn' package is not installed but required"
 	pkg_check=false
     fi
-    if [ ${pkgs} == "systemtap" ]; then
+    if [ x"${pkgs}" == x"systemtap" ]; then
 	if [ -f /usr/include/sys/sdt.h ]; then
 	    enable_systemtap="--enable-systemtap"
 	fi
@@ -131,34 +144,6 @@ if [ -f /etc/debian_version ]; then
 	opt_distro=--disable-werror
 else
 	opt_distro=
-fi
-
-case "$1" in
--b)	do_install=false; shift;;
--i)	do_build=false; shift;;
--*)	usage;;
-esac
-
-case "$1" in
--*)	usage;;
-esac
-
-prefix=$1
-
-if [ x"$prefix" == x ]; then
-    usage;
-fi
-
-if $do_build; then
-	case $# in
-	1)	:;;
-	*)	usage;;
-	esac
-else
-	case $# in
-	0)	:;;
-	*)	usage;;
-	esac
 fi
 
 set -x
