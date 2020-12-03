@@ -2,6 +2,10 @@
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
+   Copyright of the PiP-related portions is:
+   $RIKEN_copyright: 2018, 2020 Riken Center for Computational Sceience,
+	  System Software Devlopment Team. All rights researved$
+
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
@@ -22,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <unistd.h>
 #include "pthreadP.h"
 #include <hp-timing.h>
 #include <ldsodefs.h>
@@ -199,8 +204,15 @@ unsigned int __nptl_nthreads = 1;
    be set to true iff the thread actually started up and then got
    canceled before calling user code (*PD->start_routine).  */
 static int create_thread (struct pthread *pd, const struct pthread_attr *attr,
+#ifdef ENABLE_PIP
+			  int clone_flags,
+#endif
 			  bool *stopped_start, STACK_VARIABLES_PARMS,
-			  bool *thread_ran);
+			  bool *thread_ran
+#ifdef ENABLE_PIP
+			  , pid_t *pidp
+#endif
+	);
 
 #include <createthread.c>
 
@@ -628,9 +640,20 @@ report_thread_creation (struct pthread *pd)
 }
 
 
+#ifdef ENABLE_PIP
+static int
+pip_pthread_create (
+     pthread_t *newthread,
+     const pthread_attr_t *attr,
+     int clone_flags,
+     void *(*start_routine) (void *),
+     void *arg,
+     pid_t *pidp)
+#else
 int
 __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 		      void *(*start_routine) (void *), void *arg)
+#endif
 {
   STACK_VARIABLES;
 
@@ -791,8 +814,16 @@ __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 
       /* We always create the thread stopped at startup so we can
 	 notify the debugger.  */
-      retval = create_thread (pd, iattr, &stopped_start,
-			      STACK_VARIABLES_ARGS, &thread_ran);
+      retval = create_thread (pd, iattr,
+#ifdef ENABLE_PIP
+			      clone_flags,
+#endif
+			      &stopped_start,
+			      STACK_VARIABLES_ARGS, &thread_ran
+#ifdef ENABLE_PIP
+			      , pidp
+#endif
+	      );
       if (retval == 0)
 	{
 	  /* We retain ownership of PD until (a) (see CONCURRENCY NOTES
@@ -823,8 +854,16 @@ __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 	}
     }
   else
-    retval = create_thread (pd, iattr, &stopped_start,
-			    STACK_VARIABLES_ARGS, &thread_ran);
+    retval = create_thread (pd, iattr,
+#ifdef ENABLE_PIP
+			    clone_flags,
+#endif
+			    &stopped_start,
+			    STACK_VARIABLES_ARGS, &thread_ran
+#ifdef ENABLE_PIP
+			    , pidp
+#endif
+	    );
 
   if (__glibc_unlikely (retval != 0))
     {
@@ -882,8 +921,67 @@ __pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
 
   return retval;
 }
+
+#ifdef ENABLE_PIP
+int
+__pthread_create_2_1 (pthread_t *newthread, const pthread_attr_t *attr,
+		      void *(*start_routine) (void *), void *arg)
+{
+  pid_t pid;
+  return pip_pthread_create(newthread, attr,
+			    CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM
+			    | CLONE_SIGHAND | CLONE_THREAD
+			    | CLONE_SETTLS | CLONE_PARENT_SETTID
+			    | CLONE_CHILD_CLEARTID
+			    | 0,
+			    start_routine, arg, &pid);
+}
+#endif /* ENABLE_PIP */
+
 versioned_symbol (libpthread, __pthread_create_2_1, pthread_create, GLIBC_2_1);
 
+#ifdef ENABLE_PIP
+int
+pip_clone_mostly_pthread (
+     pthread_t *newthread,
+     int clone_flags,
+     int core_no,
+     size_t stack_size,
+     void *(*start_routine) (void *),
+     void *arg,
+     pid_t *pidp)
+{
+  int rv;
+  pthread_attr_t attr, *a = NULL;
+
+  if (stack_size != 0 || core_no != -1) {
+    a = &attr;
+    rv = pthread_attr_init(&attr);
+    if (rv != 0)
+      return (rv);
+    if (stack_size != 0) {
+      rv = pthread_attr_setstacksize(&attr, stack_size);
+      if (rv != 0)
+	return (rv);
+    }
+    if (core_no != -1) {
+      cpu_set_t cpuset;
+
+      CPU_ZERO(&cpuset);
+      CPU_SET(core_no, &cpuset);
+      rv = pthread_attr_setaffinity_np(&attr, sizeof(cpuset), &cpuset);
+      if (rv != 0) {
+	return (rv);
+      }
+    }
+  }
+
+  rv = pip_pthread_create(newthread, a, clone_flags, start_routine, arg, pidp);
+  if (a != NULL)
+    pthread_attr_destroy(a);
+  return (rv);
+}
+#endif /* ENABLE_PIP */
 
 #if SHLIB_COMPAT(libpthread, GLIBC_2_0, GLIBC_2_1)
 int

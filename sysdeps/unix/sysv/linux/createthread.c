@@ -3,6 +3,10 @@
    This file is part of the GNU C Library.
    Contributed by Ulrich Drepper <drepper@redhat.com>, 2002.
 
+   Copyright of the PiP-related portions is:
+   $RIKEN_copyright: 2018, 2020 Riken Center for Computational Sceience,
+	  System Software Devlopment Team. All rights researved$
+
    The GNU C Library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
@@ -28,6 +32,10 @@
 
 #include <arch-fork.h>
 
+#ifndef ENABLE_PIP
+#define NO_PIPCLONE_WORKAROUND
+#endif
+
 #ifdef __NR_clone2
 # define ARCH_CLONE __clone2
 #else
@@ -47,7 +55,16 @@ static int start_thread (void *arg) __attribute__ ((noreturn));
 
 static int
 create_thread (struct pthread *pd, const struct pthread_attr *attr,
-	       bool *stopped_start, STACK_VARIABLES_PARMS, bool *thread_ran)
+#ifdef ENABLE_PIP
+	       int clone_flags,
+#endif
+	       bool *stopped_start,
+	       STACK_VARIABLES_PARMS,
+	       bool *thread_ran
+#ifdef ENABLE_PIP
+	       , pid_t *pidp
+#endif
+	)
 {
   /* Determine whether the newly created threads has to be started
      stopped since we have to set the scheduling parameters or set the
@@ -90,18 +107,30 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
      The termination signal is chosen to be zero which means no signal
      is sent.  */
+#ifndef ENABLE_PIP
   const int clone_flags = (CLONE_VM | CLONE_FS | CLONE_FILES | CLONE_SYSVSEM
 			   | CLONE_SIGHAND | CLONE_THREAD
 			   | CLONE_SETTLS | CLONE_PARENT_SETTID
 			   | CLONE_CHILD_CLEARTID
 			   | 0);
+#else /* ENABLE_PIP */
+  int rc;
+#ifndef NO_PIPCLONE_WORKAROUND
+  pid_t ptid = -1;
+#endif
+#endif /* ENABLE_PIP */
+
 
   TLS_DEFINE_INIT_TP (tp, pd);
 
-  if (__glibc_unlikely (ARCH_CLONE (&start_thread, STACK_VARIABLES_ARGS,
-				    clone_flags, pd, &pd->tid, tp, &pd->tid)
-			== -1))
+  rc = ARCH_CLONE (&start_thread, STACK_VARIABLES_ARGS,
+		   clone_flags, pd, &pd->tid, tp, &pd->tid);
+  if (__glibc_unlikely (rc == -1))
     return errno;
+
+#ifndef NO_PIPCLONE_WORKAROUND
+  ptid = pd->tid; /* do this ASAP to narrow the window of race condition */
+#endif
 
   /* It's started now, so if we fail below, we'll have to cancel it
      and let it clean itself up.  */
@@ -118,10 +147,19 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 	{
 	  assert (*stopped_start);
 
-	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3, pd->tid,
+	  res = INTERNAL_SYSCALL (sched_setaffinity, err, 3,
+#ifndef NO_PIPCLONE_WORKAROUND
+				  ptid,
+#else
+				  pd->tid,
+#endif
 				  attr->cpusetsize, attr->cpuset);
 
-	  if (__glibc_unlikely (INTERNAL_SYSCALL_ERROR_P (res, err)))
+	  if (__glibc_unlikely (INTERNAL_SYSCALL_ERROR_P (res, err)
+#ifndef NO_PIPCLONE_WORKAROUND
+		      && INTERNAL_SYSCALL_ERRNO (res, err) != ESRCH
+#endif
+		      ))
 	  err_out:
 	    {
 	      /* The operation failed.  We have to kill the thread.
@@ -129,7 +167,12 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 
 	      pid_t pid = __getpid ();
 	      INTERNAL_SYSCALL_DECL (err2);
-	      (void) INTERNAL_SYSCALL_CALL (tgkill, err2, pid, pd->tid,
+	      (void) INTERNAL_SYSCALL_CALL (tgkill, err2, pid,
+#ifndef NO_PIPCLONE_WORKAROUND
+					    ptid,
+#else
+					    pd->tid,
+#endif
 					    SIGCANCEL);
 
 	      return INTERNAL_SYSCALL_ERRNO (res, err);
@@ -141,13 +184,22 @@ create_thread (struct pthread *pd, const struct pthread_attr *attr,
 	{
 	  assert (*stopped_start);
 
-	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3, pd->tid,
+	  res = INTERNAL_SYSCALL (sched_setscheduler, err, 3,
+#ifndef NO_PIPCLONE_WORKAROUND
+				  ptid,
+#else
+				  pd->tid,
+#endif
 				  pd->schedpolicy, &pd->schedparam);
 
 	  if (__glibc_unlikely (INTERNAL_SYSCALL_ERROR_P (res, err)))
 	    goto err_out;
 	}
     }
+
+#ifdef ENABLE_PIP
+  *pidp = rc;
+#endif
 
   return 0;
 }
