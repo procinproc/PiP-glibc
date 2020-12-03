@@ -156,8 +156,8 @@ if $do_build; then
 		--enable-process-in-process
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
-
-	sed "s|@GLIBC_LIBDIR@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
+# make piplnlibs
+	sed "s|@GLIBC_PREFIX@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
 
 fi
 
