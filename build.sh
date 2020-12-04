@@ -135,8 +135,8 @@ fi
 set -x
 
 if $do_build; then
-	make clean
-	make distclean
+	make clean || true
+	make distclean || true
 
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
