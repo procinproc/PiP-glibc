@@ -105,6 +105,7 @@ else
 	opt_distro=
 fi
 
+# -b is for %build phase, and -i is for %install phase of rpmbuild(8)
 while	case "$1" in
 	-b)	do_install=false
 		do_piplnlibs=false
@@ -170,5 +171,6 @@ if $do_install; then
 fi
 
 if $do_piplnlibs; then
+	# for RPM, this has to be done at "rpm -i" instead of %install phase
 	$prefix/bin/piplnlibs -s
 fi
