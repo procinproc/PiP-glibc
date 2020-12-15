@@ -197,7 +197,7 @@ if $do_install; then
 	    rm $SRCDIR/intl/plural.c.NG
 	fi
 
-# install piplnlibs.sh and invoke it
+	# install piplnlibs.sh
 	mkdir -p $prefix/bin
 	cp $SRCDIR/piplnlibs.sh $prefix/bin/piplnlibs
 	chmod +x $prefix/bin/piplnlibs
