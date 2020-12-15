@@ -163,6 +163,9 @@ fi
 
 if $do_install; then
 	make install
+
+# install piplnlibs.sh and invoke it
+	mkdir -p $prefix/bin
 	cp $SRCDIR/piplnlibs.sh $prefix/bin
 	chmod +x $prefix/bin/piplnlibs.sh
 	$prefix/bin/piplnlibs.sh
