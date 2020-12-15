@@ -73,6 +73,7 @@ usage()
 
 do_build=true
 do_install=true
+do_piplnlibs=true
 
 : ${SRCDIR:=`dirname $0`}
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
@@ -105,8 +106,12 @@ else
 fi
 
 while	case "$1" in
-	-b)	do_install=false; true;;
-	-i)	do_build=false; true;;
+	-b)	do_install=false
+		do_piplnlibs=false
+		true;;
+	-i)	do_build=false
+		do_piplnlibs=false
+		true;;
 	--prefix=*)
 		prefix=`expr "$1" : "--prefix=\(.*\)"`; true;;
 	-*)	usage;;
@@ -162,5 +167,8 @@ if $do_install; then
 	mkdir -p $prefix/bin
 	cp $SRCDIR/piplnlibs.sh $prefix/bin
 	chmod +x $prefix/bin/piplnlibs.sh
-	$prefix/bin/piplnlibs.sh
+fi
+
+if $do_piplnlibs; then
+	$prefix/bin/piplnlibs.sh -s
 fi
