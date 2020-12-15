@@ -199,12 +199,12 @@ if $do_install; then
 
 # install piplnlibs.sh and invoke it
 	mkdir -p $prefix/bin
-	cp $SRCDIR/piplnlibs.sh $prefix/bin
-	chmod +x $prefix/bin/piplnlibs.sh
+	cp $SRCDIR/piplnlibs.sh $prefix/bin/piplnlibs
+	chmod +x $prefix/bin/piplnlibs
 fi
 
 if $do_piplnlibs; then
-	$prefix/bin/piplnlibs.sh -s
+	$prefix/bin/piplnlibs -s
 fi
 
 if [ x${enable_nss_crypt} == x ]; then
