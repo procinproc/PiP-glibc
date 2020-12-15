@@ -149,8 +149,8 @@ fi
 set -x
 
 if $do_build; then
-	make clean
-	make distclean
+	make clean || true
+	make distclean || true
 
 	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${enable_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
 
