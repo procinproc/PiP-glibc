@@ -58,18 +58,27 @@ srcdir=`cd $dir; pwd`
 : ${CC:=gcc}
 : ${CXX:=g++}
 
-case "$1" in
--b)	do_install=false; shift;;
--i)	do_build=false; shift;;
---prefix=*)	prefix=`expr "$1" : "--prefix=\(.*\)"`;;
--*)	usage;;
-*)	prefix=$1;;
-esac
+while	case "$1" in
+	-b)	do_install=false; true;;
+	-i)	do_build=false; true;;
+	--prefix=*)
+		prefix=`expr "$1" : "--prefix=\(.*\)"`; true;;
+	-*)	usage;;
+	'')	false;;
+	*)	prefix=$1; true;;
+	esac
+do
+	shift
+done
 
 if [ x"$prefix" == x ]; then
     echo >&2 "Error: <PREFIX> must be specifgied"
     usage;
 fi
+
+case "$1" in
+-*)	usage;;
+esac
 
 if ! [ -f /etc/redhat-release ]; then
     echo "Not a RedHat distribution"
