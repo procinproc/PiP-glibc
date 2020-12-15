@@ -188,6 +188,7 @@ if $do_build; then
 	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${SRCDIR}/piplnlibs.sh
 fi
 
+# installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
 	make install ${opt_mflags}
 
@@ -199,14 +200,14 @@ if $do_install; then
 	fi
 
 	# install piplnlibs.sh
-	mkdir -p $prefix/bin
-	cp $SRCDIR/piplnlibs.sh $prefix/bin/piplnlibs
-	chmod +x $prefix/bin/piplnlibs
+	mkdir -p ${DESTDIR}$prefix/bin
+	cp $SRCDIR/piplnlibs.sh ${DESTDIR}$prefix/bin/piplnlibs
+	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
 fi
 
 if $do_piplnlibs; then
 	# for RPM, this has to be done at "rpm -i" instead of %install phase
-	$prefix/bin/piplnlibs -s
+	${DESTDIR}$prefix/bin/piplnlibs -s
 fi
 
 if [ x${enable_nss_crypt} == x ]; then
