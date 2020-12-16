@@ -2,12 +2,12 @@
 #
 #	$ rpm -Uvh glibc-2.17-260.el7.src.rpm
 #	$ cd .../$SOMEWHERE/.../PiP-glibc
-#	$ git diff origin/centos/glibc-2.17-260.el7.branch centos/glibc-2.17-260.el7.pip.branch >~/rpmbuild/SOURCES/glibc-pip.patch
-#	$ rpmbuild -bb ~/rpmbuild/SPECS/pip-glibc.spec
+#	$ git diff origin/centos/glibc-2.17-260.el7.branch centos/glibc-2.17-260.el7.pip.branch >~/rpmbuild/SOURCES/glibc-el7-pip3.patch
+#	$ rpmbuild -bb ~/rpmbuild/SPECS/pip-glibc.el7.spec
 #
 
 %define	pip_glibc_dir		/opt/pip
-%define	pip_glibc_release	pip2
+%define	pip_glibc_release	pip3
 
 # disable strip, otherwise the pip-gdb shows the following error:
 #	warning: Unable to find libthread_db matching inferior's thread library, thread debugging will not be available.
@@ -1451,7 +1451,7 @@ Patch2113: glibc-rh1445644.patch
 Patch2114: glibc-rh1471405.patch
 
 # PiP
-Patch9999: glibc-pip.patch
+Patch9999: glibc-el7-pip3.patch
 
 ##############################################################################
 # End of glibc patches.
