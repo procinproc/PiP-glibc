@@ -165,6 +165,14 @@ fi
 if $do_install; then
 	make install
 
+	# another workaround (removing RPATH in ld-liux.so)
+	if [ x"${CC}" == x ]; then
+	    CC=cc
+	fi
+	${CC} -g -O2 ${SRCDIR}/pip_elf_rm_rpath.c -o pip_elf_rm_rpath
+	ld_linux=`ls -d ${DESTDIR}$prefix/lib/ld-[0-9]*.so | sed -n '$p'`
+	./pip_elf_rm_rpath ${ld_linux}
+
 	# install piplnlibs.sh
 	mkdir -p ${DESTDIR}$prefix/bin
 	cp $SRCDIR/piplnlibs.sh ${DESTDIR}$prefix/bin/piplnlibs
@@ -175,11 +183,3 @@ if $do_piplnlibs; then
 	# for RPM, this has to be done at "rpm -i" instead of %install phase
 	${DESTDIR}$prefix/bin/piplnlibs -s
 fi
-
-# another workaround (removing RPATH in ld-liux.so)
-if [ x"${CC}" == x ]; then
-    CC=cc
-fi
-${CC} -g -O2 ${SRCDIR}/pip_elf_rm_rpath.c -o pip_elf_rm_rpath
-ld_linux=`ls -d ${DESTDIR}$prefix/lib/ld-[0-9]*.so | sed -n '$p'`
-./pip_elf_rm_rpath ${ld_linux}
