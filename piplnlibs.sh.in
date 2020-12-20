@@ -42,6 +42,7 @@
 ### This command creates a number of symbolic links to the SOLIBs which
 ### are not installed by the patched GLIBC installation.
 ###
+### \param -a Add DIR to directories to search SOLIBS to create symbolic links.
 ### \param -r Remove symbolic links to SOLIBs in @GLIBC_LIBDIR@ before creating.
 ### \param -s Silent mode.
  ###
