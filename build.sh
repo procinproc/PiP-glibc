@@ -61,10 +61,12 @@ cleanup()
 
 trap cleanup $BUILD_TRAP_SIGS;
 
+cmd=`basename $0`
+
 usage()
 {
-	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
-	echo >&2 "       ./`basename $0`  -i <PREFIX>"
+	echo >&2 "Usage: ./$cmd [-b] <PREFIX>"
+	echo >&2 "       ./$cmd -i <PREFIX>"
 	echo >&2 "	-b      : build only, do not install" # for RPM
 	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
@@ -81,6 +83,21 @@ do_piplnlibs=true
 : ${CXX:=g++}
 : ${CFLAGS:='-O2 -g'}
 
+pwd=`pwd`
+cwd=`realpath ${pwd}`
+rsrcdir=`realpath ${SRCDIR}`
+if [ x"${cwd}" == x"${rsrcdir}" ]; then
+    echo >&2 "Error: ${cmd} must be invoked at the different directory from the source tree"
+    exit 1;
+fi
+cdir=`ls`
+if [ x"${cdir}" != x ]; then
+    echo >&2 "Warning: The current directory is not empty"
+    echo >&2 "         If build.sh fails with compilation errors,"
+    echo >&2 "         remove all files and directoris in this directory"
+    echo >&2 "         and then try again."
+fi
+
 machine=`uname -m`
 case ${machine} in
 aarch64)
@@ -94,7 +111,7 @@ x86_64)
 	opt_cet=
 	;;
 *)
-	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
+	echo >&2 "$cmd: unsupported machine type: `uname -m`"
 	exit 2
 	;;
 esac
@@ -135,9 +152,6 @@ esac
 set -x
 
 if $do_build; then
-	make clean
-	make distclean
-
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
 		--prefix=$prefix \
