@@ -183,6 +183,10 @@ if $do_build; then
 	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
 	    echo '===== try again ===='
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
+            if [ $? != 0 ]; then
+		echo >&2 "PiP-glibc build error"
+		exit 1;
+            fi
 	fi
 fi
 
