@@ -41,8 +41,8 @@ usage()
 {
 	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
 	echo >&2 "       ./`basename $0`  -i"
-	echo >&2 "	-b      : build only, do not install"
-	echo >&2 "	-i      : install only, do not build"
+	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
@@ -184,8 +184,6 @@ if $do_build; then
 	    echo '===== try again ===='
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
 	fi
-# make piplnlibs
-	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${SRCDIR}/piplnlibs.sh
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
@@ -199,15 +197,14 @@ if $do_install; then
 	    rm $SRCDIR/intl/plural.c.NG
 	fi
 
-	# install piplnlibs.sh
+	# make and install piplnlibs.sh
 	mkdir -p ${DESTDIR}$prefix/bin
-	cp $SRCDIR/piplnlibs.sh ${DESTDIR}$prefix/bin/piplnlibs
+	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
 	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
-fi
-
-if $do_piplnlibs; then
-	# for RPM, this has to be done at "rpm -i" instead of %install phase
-	${DESTDIR}$prefix/bin/piplnlibs -s
+	if $do_piplnlibs; then
+	    # for RPM, this has to be done at "rpm -i" instead of %install phase
+	    ${DESTDIR}$prefix/bin/piplnlibs -s
+	fi
 fi
 
 if [ x${enable_nss_crypt} == x ]; then
