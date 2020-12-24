@@ -37,10 +37,12 @@ cleanup()
 
 trap cleanup $BUILD_TRAP_SIGS;
 
+cmd=`basename $0`
+
 usage()
 {
-	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
-	echo >&2 "       ./`basename $0`  -i"
+	echo >&2 "Usage: ./$cmd [-b] <PREFIX>"
+	echo >&2 "       ./$cmd  -i"
 	echo >&2 "	-b      : build only, do not install" # for RPM
 	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
@@ -58,6 +60,21 @@ srcdir=`cd $dir; pwd`
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
+
+pwd=`pwd`
+cwd=`realpath ${pwd}`
+rsrcdir=`realpath ${SRCDIR}`
+if [ x"${cwd}" == x"${rsrcdir}" ]; then
+    echo >&2 "Error: ${cmd} must be invoked at the different directory from the source tree"
+    exit 1;
+fi
+cdir=`ls`
+if [ x"${cdir}" != x ]; then
+    echo >&2 "Warning: The current directory is not empty"
+    echo >&2 "         If build.sh fails with compilation errors,"
+    echo >&2 "         remove all files and directoris in this directory"
+    echo >&2 "         and then try again."
+fi
 
 # -b is for %build phase, and -i is for %install phase of rpmbuild(8)
 while	case "$1" in
@@ -150,7 +167,7 @@ x86_64)
 	opt_mflags=
 	;;
 *)
-	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
+	echo >&2 "$cmd: unsupported machine type: `uname -m`"
 	exit 2
 	;;
 esac
