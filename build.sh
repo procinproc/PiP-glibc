@@ -45,7 +45,7 @@ check_packages() {
 	    echo "$pkgn must be installed"
 	fi
     done
-    if [ $pkgfail == true ]; then
+    if $pkgfail; then
 	exit 1;
     fi
     echo "All required Yum packages are found."
@@ -65,8 +65,8 @@ usage()
 {
 	echo >&2 "Usage: ./`basename $0` [-b] <PREFIX>"
 	echo >&2 "       ./`basename $0`  -i <PREFIX>"
-	echo >&2 "	-b      : build only, do not install"
-	echo >&2 "	-i      : install only, do not build"
+	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
@@ -135,8 +135,8 @@ esac
 set -x
 
 if $do_build; then
-	make clean || true
-	make distclean || true
+	make clean
+	make distclean
 
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
@@ -156,8 +156,10 @@ if $do_build; then
 		--enable-process-in-process
 
 	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
-# make piplnlibs
-	sed "s|@GLIBC_PREFIX@|$prefix|" < $SRCDIR/piplnlibs.sh.in > $SRCDIR/piplnlibs.sh
+	if [ $? != 0 ]; then
+	    echo >&2 "PiP-glibc build error"
+	    exit 1;
+	fi
 
 fi
 
@@ -166,20 +168,18 @@ if $do_install; then
 	make install
 
 	# another workaround (removing RPATH in ld-liux.so)
-	if [ x"${CC}" == x ]; then
-	    CC=cc
-	fi
-	${CC} -g -O2 ${SRCDIR}/pip_elf_rm_rpath.c -o pip_elf_rm_rpath
+	rm -f pip_annul_rpath
+	${CC} -g -O2 ${SRCDIR}/pip_annul_rpath.c -o pip_annul_rpath
 	ld_linux=`ls -d ${DESTDIR}$prefix/lib/ld-[0-9]*.so | sed -n '$p'`
-	./pip_elf_rm_rpath ${ld_linux}
+	./pip_annul_rpath ${ld_linux}
 
-	# install piplnlibs.sh
+	# make and install piplnlibs.sh
 	mkdir -p ${DESTDIR}$prefix/bin
-	cp $SRCDIR/piplnlibs.sh ${DESTDIR}$prefix/bin/piplnlibs
+	sed "s|@GLIBC_PREFIX@|$prefix|" < $SRCDIR/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
 	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
-fi
 
-if $do_piplnlibs; then
-	# for RPM, this has to be done at "rpm -i" instead of %install phase
-	${DESTDIR}$prefix/bin/piplnlibs -s
+	if $do_piplnlibs; then
+	    # for RPM, this has to be done at "rpm -i" instead of %install phase
+	    ${DESTDIR}$prefix/bin/piplnlibs -s
+	fi
 fi
