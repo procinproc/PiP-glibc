@@ -181,12 +181,24 @@ fi
 set -x
 
 if $do_build; then
+	set +e
 	make clean
 	make distclean
-
-	$SRCDIR/configure --prefix=$prefix CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${enable_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
-
-	set +e
+	$SRCDIR/configure --prefix=$prefix \
+	    CC="${CC}" \
+	    CXX="${CXX}" \
+	    "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
+	    --enable-add-ons=${opt_add_ons} \
+	    --with-headers=/usr/include \
+	    --enable-kernel=2.6.32 \
+	    --enable-bind-now \
+	    --build=${opt_build} \
+	    ${opt_multi_arch} \
+	    --enable-obsolete-rpc \
+	    ${enable_systemtap} \
+	    --disable-profile \
+	    ${enable_nss_crypt} \
+	    ${opt_distro}
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
 	mkst=$?;
 	set -e
@@ -195,14 +207,31 @@ if $do_build; then
 	    echo
 	    echo '===== workaround ===='
 	    if [ -f $SRCDIR/intl/plural.c ]; then
-		cp $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
+		mv -f $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
 	    fi
 	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
 	    echo '===== try again ===='
 	    make clean
+	    make distclean
+	    $SRCDIR/configure --prefix=$prefix \
+		CC="${CC}" \
+		CXX="${CXX}" \
+		"CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
+		--enable-add-ons=${opt_add_ons} \
+		--with-headers=/usr/include \
+		--enable-kernel=2.6.32 \
+		--enable-bind-now \
+		--build=${opt_build} \
+		${opt_multi_arch} \
+		--enable-obsolete-rpc \
+		${enable_systemtap} \
+		--disable-profile \
+		${enable_nss_crypt} \
+		${opt_distro}
 	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
             if [ $? != 0 ]; then
 		echo >&2 "PiP-glibc build error"
+		mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 		exit 1;
             fi
 	fi
@@ -215,8 +244,7 @@ if $do_install; then
 # undo workaround
 	if [ -f $SRCDIR/intl/plural.c.NG ]; then
 	    echo '===== undo workaround ===='
-	    cp $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
-	    rm $SRCDIR/intl/plural.c.NG
+	    mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 	fi
 
 	# make and install piplnlibs.sh
