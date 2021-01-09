@@ -58,8 +58,7 @@ dir=`dirname $0`
 srcdir=`cd $dir; pwd`
 
 : ${SRCDIR:=${srcdir}}
-#: ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
-: ${BUILD_PARALLELISM:=16}	# 16 seems to be the best
+: ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
 
