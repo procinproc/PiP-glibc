@@ -41,7 +41,7 @@ cmd=`basename $0`
 
 usage()
 {
-	echo >&2 "Usage: ./$cmd [-b] [-j<N>] REFIX>"
+	echo >&2 "Usage: ./$cmd [-b] [-j<N>] <PREFIX>"
 	echo >&2 "       ./$cmd  -i"
 	echo >&2 "	-b      : build only, do not install" # for RPM
 	echo >&2 "	-j<N>   : make parallelism"
@@ -111,19 +111,6 @@ esac
 if [ x"${build_parallelism}" != x ]; then
     BUILD_PARALLELISM=${build_parallelism}
 fi
-
-if ! [ -f /etc/redhat-release ]; then
-    echo "Not a RedHat distribution"
-    exit 1
-fi
-read redhat_release < /etc/redhat-release
-redhat_version=`expr "${redhat_release}" : ".*release \([0-9]\)"`
-case $redhat_version in
-    7) pkgs_needed="nss systemtap";;
-    8) pkgs_needed="nss systemtap";;
-    *) echo "Unsupported RedHat version ($redhat_version)";
-	exit 1;;
-esac
 
 echo "Checking required packages ... "
 
