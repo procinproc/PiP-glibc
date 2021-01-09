@@ -41,9 +41,10 @@ cmd=`basename $0`
 
 usage()
 {
-	echo >&2 "Usage: ./$cmd [-b] <PREFIX>"
+	echo >&2 "Usage: ./$cmd [-b] [-j<N>] REFIX>"
 	echo >&2 "       ./$cmd  -i"
 	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "	-j<N>   : make parallelism"
 	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
@@ -57,7 +58,8 @@ dir=`dirname $0`
 srcdir=`cd $dir; pwd`
 
 : ${SRCDIR:=${srcdir}}
-: ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
+#: ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
+: ${BUILD_PARALLELISM:=16}	# 16 seems to be the best
 : ${CC:=gcc}
 : ${CXX:=g++}
 
@@ -76,6 +78,8 @@ if [ x"${cdir}" != x ]; then
     echo >&2 "         and then try again."
 fi
 
+build_parallelism=
+
 # -b is for %build phase, and -i is for %install phase of rpmbuild(8)
 while	case "$1" in
 	-b)	do_install=false
@@ -86,6 +90,8 @@ while	case "$1" in
 		true;;
 	--prefix=*)
 		prefix=`expr "$1" : "--prefix=\(.*\)"`; true;;
+	-j*)
+		build_parallelism=`expr "$1" : "-j\([0-9]*\)"`; true;;
 	-*)	usage;;
 	'')	false;;
 	*)	prefix=$1; true;;
@@ -102,6 +108,10 @@ fi
 case "$1" in
 -*)	usage;;
 esac
+
+if [ x"${build_parallelism}" != x ]; then
+    BUILD_PARALLELISM=${build_parallelism}
+fi
 
 if ! [ -f /etc/redhat-release ]; then
     echo "Not a RedHat distribution"
@@ -199,7 +209,7 @@ if $do_build; then
 	    --disable-profile \
 	    ${enable_nss_crypt} \
 	    ${opt_distro}
-	make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	make -j${BUILD_PARALLELISM} ${opt_mflags}
 	mkst=$?;
 	set -e
 # workaround
@@ -228,7 +238,7 @@ if $do_build; then
 		--disable-profile \
 		${enable_nss_crypt} \
 		${opt_distro}
-	    make -j ${BUILD_PARALLELISM} ${opt_mflags}
+	    make -j${BUILD_PARALLELISM} ${opt_mflags}
             if [ $? != 0 ]; then
 		echo >&2 "PiP-glibc build error"
 		mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
