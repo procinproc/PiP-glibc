@@ -65,9 +65,10 @@ cmd=`basename $0`
 
 usage()
 {
-	echo >&2 "Usage: ./$cmd [-b] <PREFIX>"
+	echo >&2 "Usage: ./$cmd [-b] [-j<N>] <PREFIX>"
 	echo >&2 "       ./$cmd -i <PREFIX>"
 	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "	-j<N>   : make parallelism"
 	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
@@ -122,6 +123,8 @@ else
 	opt_distro=
 fi
 
+build_parallelism=
+
 # -b is for %build phase, and -i is for %install phase of rpmbuild(8)
 while	case "$1" in
 	-b)	do_install=false
@@ -132,6 +135,8 @@ while	case "$1" in
 		true;;
 	--prefix=*)
 		prefix=`expr "$1" : "--prefix=\(.*\)"`; true;;
+	-j*)
+		build_parallelism=`expr "$1" : "-j\([0-9]*\)"`; true;;
 	-*)	usage;;
 	'')	false;;
 	*)	prefix=$1; true;;
@@ -148,6 +153,10 @@ fi
 case "$1" in
 -*)	usage;;
 esac
+
+if [ x"${build_parallelism}" != x ]; then
+    BUILD_PARALLELISM=${build_parallelism}
+fi
 
 set -x
 
@@ -169,7 +178,7 @@ if $do_build; then
 		--disable-crypt \
 		--enable-process-in-process
 
-	make -j ${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
+	make -j${BUILD_PARALLELISM} -O -r 'ASFLAGS=-g -Wa,--generate-missing-build-notes=yes'
 	if [ $? != 0 ]; then
 	    echo >&2 "PiP-glibc build error"
 	    exit 1;
