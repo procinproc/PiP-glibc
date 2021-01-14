@@ -6,7 +6,7 @@
 #	$ rpmbuild -bb ~/rpmbuild/SPECS/pip-glibc.el8.spec
 #
 
-%define	pip_glibc_dir		/opt/pip
+%define	pip_glibc_dir		/opt/process-in-process/pip-glibc
 %define	pip_glibc_release	pip3
 
 # disable strip, otherwise the pip-gdb shows the following error:
