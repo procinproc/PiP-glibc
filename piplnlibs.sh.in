@@ -67,7 +67,7 @@ glibc_default_libdir=/lib64
 
 usage()
 {
-	echo >&2 "Usage: ${program_name} [-Rrs] [a DIR]"
+	echo >&2 "Usage: ${program_name} [-Rrs] [DIR]"
 	exit 2
 }
 
@@ -83,7 +83,7 @@ do
 			shift;
 			add_libdir=${option};;
 		esac
-		case ${option} in -*[!Rrs]*)
+		case ${option} in -*[!Rrsa]*)
 			echo "${program_name}: error: invalid option ${option}" >&2
 			usage;;
 		esac;;
@@ -98,6 +98,25 @@ fi
 if [ x"${glibc_libdir}" == x"${glibc_default_libdir}" ]; then
 	echo "${program_name}: warning:" \
 	     "nothing to do, because ${glibc_libdir} == ${glibc_default_libdir}" >&2
+	exit 0
+fi
+
+if [ x"${add_libdir}" != x ]; then
+	ls ${add_libdir} | grep '^lib.*\.so\(\.[0-9a-z]*\)*$' |
+	while read lib
+	do
+		if [ -f ${glibc_libdir}/$lib ]; then
+			continue
+		fi
+		${opt_silent} || echo \
+		   ln -s ${libdir}/${lib} ${glibc_libdir}/
+		if ln -s ${libdir}/${lib} ${glibc_libdir}/
+		then
+			:
+		else
+			exit_status=1
+		fi
+	done
 	exit 0
 fi
 
@@ -119,24 +138,6 @@ if ${opt_remove}; then
 fi
 
 $opt_remove_only && exit $exit_status
-
-if [ x"${add_libdir}" != x ]; then
-	ls ${add_libdir} | grep '^lib.*\.so\(\.[0-9a-z]*\)*$' |
-	while read lib
-	do
-		if [ -f ${glibc_libdir}/$lib ]; then
-			continue
-		fi
-		${opt_silent} || echo \
-		   ln -s ${libdir}/${lib} ${glibc_libdir}/
-		if ln -s ${libdir}/${lib} ${glibc_libdir}/
-		then
-			:
-		else
-			exit_status=1
-		fi
-	done
-fi
 
 if [ -n "${PIP_LIBRARY_PATH:-$LD_LIBRARY_PATH}" ]; then
 	extra_libdirs=`echo "${PIP_LIBRARY_PATH:-$LD_LIBRARY_PATH}" |
