@@ -249,7 +249,7 @@ if $do_install; then
 	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
 	if $do_piplnlibs; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
-	    ${DESTDIR}$prefix/bin/piplnlibs -s
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}$prefix/bin/piplnlibs -s )
 	fi
 fi
 
