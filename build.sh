@@ -225,25 +225,26 @@ if $do_build; then
 		${enable_nss_crypt} \
 		${opt_distro}
 	    make -j${BUILD_PARALLELISM} ${opt_mflags}
-            if [ $? != 0 ]; then
+	    extval=$?
+            if [ $extval != 0 ]; then
 		echo >&2 "PiP-glibc build error"
-		mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 		exit 1;
             fi
 	fi
+	make localedata/install-locales
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
 	make install ${opt_mflags}
-
-# undo workaround
+	# undo workaround
 	if [ -f $SRCDIR/intl/plural.c.NG ]; then
 	    echo '===== undo workaround ===='
 	    mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
 	fi
-
-	# make and install piplnlibs.sh
+	# symbolic link to /usr/share/timezone
+	ln -s /usr/share/zoneinfo ${DESTDIR}$prefix/share/zoneinfo
+	# make, install and run piplnlibs.sh
 	mkdir -p ${DESTDIR}$prefix/bin
 	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
 	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
