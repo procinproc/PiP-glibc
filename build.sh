@@ -183,12 +183,13 @@ if $do_build; then
 	    echo >&2 "PiP-glibc build error"
 	    exit 1;
 	fi
-
+	make localedata/install-locales
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
 	make install
+	ln -s /usr/share/zoneinfo ${DESTDIR}${prefix}/sharezoneinfo
 
 	# another workaround (removing RPATH in ld-liux.so)
 	rm -f pip_annul_rpath
@@ -197,12 +198,12 @@ if $do_install; then
 	./pip_annul_rpath ${ld_linux}
 
 	# make and install piplnlibs.sh
-	mkdir -p ${DESTDIR}$prefix/bin
-	sed "s|@GLIBC_PREFIX@|$prefix|" < $SRCDIR/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
-	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
+	mkdir -p ${DESTDIR}${prefix}/bin
+	sed "s|@GLIBC_PREFIX@|$prefix|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
+	chmod +x ${DESTDIR}${prefix}/bin/piplnlibs
 
-	if $do_piplnlibs; then
+	if ${do_piplnlibs}; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
-	    ( unset LD_LIBRARY_PATH; ${DESTDIR}$prefix/bin/piplnlibs -s )
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s )
 	fi
 fi
