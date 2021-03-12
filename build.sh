@@ -183,13 +183,14 @@ if $do_build; then
 	    echo >&2 "PiP-glibc build error"
 	    exit 1;
 	fi
-	make localedata/install-locales
+#	make localedata/install-locales
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
 	make install
-	ln -s /usr/share/zoneinfo ${DESTDIR}${prefix}/sharezoneinfo
+	mv ${DESTDIR}${prefix}/share ${DESTDIR}${prefix}/share.pip
+	ln -s /usr/share ${DESTDIR}${prefix}/share
 
 	# another workaround (removing RPATH in ld-liux.so)
 	rm -f pip_annul_rpath
