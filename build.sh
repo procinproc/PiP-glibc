@@ -178,6 +178,9 @@ set -x
 
 if $do_build; then
 	set +e
+	if [ -h $prefix/share ]; then
+	    unlink $prefix/share
+	fi
 	make clean
 	make distclean
 	$SRCDIR/configure --prefix=$prefix \
@@ -231,26 +234,41 @@ if $do_build; then
 		exit 1;
             fi
 	fi
-	make localedata/install-locales
+	## make localedata/install-locales
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
-	make install ${opt_mflags}
-	# undo workaround
-	if [ -f $SRCDIR/intl/plural.c.NG ]; then
-	    echo '===== undo workaround ===='
-	    mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+	if [ -h $prefix/share ]; then
+	    unlink $prefix/share
 	fi
-	# symbolic link to /usr/share/timezone
-	ln -s /usr/share/zoneinfo ${DESTDIR}$prefix/share/zoneinfo
+	make install ${opt_mflags}
+	if [ -d ${DESTDIR}$prefix/share ] && ! [ -h ${DESTDIR}$prefix/share ]; then
+	    if [ -d ${DESTDIR}$prefix/share.pip ]; then
+		rm -r ${DESTDIR}$prefix/share.pip
+	    fi
+	    mv -f ${DESTDIR}$prefix/share ${DESTDIR}$prefix/share.pip
+	fi
+	# undo workaround -- if we do this, next 'build -i ...' will fail!!
+	## if [ -f $SRCDIR/intl/plural.c.NG ]; then
+	##    echo '===== undo workaround ===='
+	##    mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+	## fi
+	# symbolic link to /usr/share
+	if ! [ -h ${DESTDIR}$prefix/share ]; then
+	    ln -s /usr/share ${DESTDIR}$prefix/share
+	fi
 	# make, install and run piplnlibs.sh
-	mkdir -p ${DESTDIR}$prefix/bin
-	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
-	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
+	if ! [ -x ${DESTDIR}$prefix/bin/piplnlibs ]; then
+	    if ! [ -d ${DESTDIR}$prefix/bin ]; then
+		mkdir -p ${DESTDIR}$prefix/bin
+	    fi
+	    sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
+	    chmod +x ${DESTDIR}$prefix/bin/piplnlibs
+	fi
 	if $do_piplnlibs; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
-	    ( unset LD_LIBRARY_PATH; ${DESTDIR}$prefix/bin/piplnlibs -s )
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}$prefix/bin/piplnlibs -s -r )
 	fi
 fi
 
