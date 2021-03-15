@@ -161,6 +161,11 @@ fi
 set -x
 
 if $do_build; then
+	set +e
+        # unlink $prefix/share not to be deleted by 'make clean'
+	if [ -h $prefix/share ]; then
+	    unlink $prefix/share
+	fi
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
 		--prefix=$prefix \
@@ -188,18 +193,34 @@ fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
+        # unlink $prefix/share not to be deleted by 'make install'
+	if [ -h ${DESTDIR}$prefix/share ]; then
+	    unlink ${DESTDIR}$prefix/share
+	fi
+	# do make install PiP-glibc
 	make install
-	mv ${DESTDIR}${prefix}/share ${DESTDIR}${prefix}/share.pip
-	ln -s /usr/share ${DESTDIR}${prefix}/share
+	# then mv the installed $prefix/share to share.pip. 'rm -r' if exists
+	if [ -d ${DESTDIR}$prefix/share ] && ! [ -h ${DESTDIR}$prefix/share ]; then
+	    if [ -d ${DESTDIR}$prefix/share.pip ]; then
+		rm -r ${DESTDIR}$prefix/share.pip
+	    fi
+	    mv -f ${DESTDIR}$prefix/share ${DESTDIR}$prefix/share.pip
+	fi
+	# finally symbolic link to /usr/share
+	if ! [ -h ${DESTDIR}$prefix/share ]; then
+	    ln -s /usr/share ${DESTDIR}$prefix/share
+	fi
 
-	# another workaround (removing RPATH in ld-liux.so)
+	# workaround (removing RPATH in ld-liux.so)
 	rm -f pip_annul_rpath
 	${CC} -g -O2 ${SRCDIR}/pip_annul_rpath.c -o pip_annul_rpath
 	ld_linux=`ls -d ${DESTDIR}$prefix/lib/ld-[0-9]*.so | sed -n '$p'`
 	./pip_annul_rpath ${ld_linux}
 
 	# make and install piplnlibs.sh
-	mkdir -p ${DESTDIR}${prefix}/bin
+	if ! [ -d ${DESTDIR}$prefix/bin ]; then
+	    mkdir -p ${DESTDIR}$prefix/bin
+	fi
 	sed "s|@GLIBC_PREFIX@|$prefix|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
 	chmod +x ${DESTDIR}${prefix}/bin/piplnlibs
 
