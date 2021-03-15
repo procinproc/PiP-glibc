@@ -241,8 +241,8 @@ fi
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
 if $do_install; then
         # unlink $prefix/share not to be deleted by 'make install'
-	if [ -h $prefix/share ]; then
-	    unlink $prefix/share
+	if [ -h ${DESTDIR}$prefix/share ]; then
+	    unlink ${DESTDIR}$prefix/share
 	fi
 	# do make install PiP-glibc
 	make install ${opt_mflags}
