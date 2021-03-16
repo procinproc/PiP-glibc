@@ -27,6 +27,8 @@
 
 BUILD_TRAP_SIGS='1 2 14 15';
 
+echo $0 $@ > .build.cmd
+
 cleanup()
 {
     echo;
@@ -41,11 +43,8 @@ cmd=`basename $0`
 
 usage()
 {
-	echo >&2 "Usage: ./$cmd [-b] [-j<N>] <PREFIX>"
-	echo >&2 "       ./$cmd  -i"
-	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "Usage: ./$cmd [-j<N>] <PREFIX>"
 	echo >&2 "	-j<N>   : make parallelism"
-	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
@@ -81,10 +80,10 @@ build_parallelism=
 
 # -b is for %build phase, and -i is for %install phase of rpmbuild(8)
 while	case "$1" in
-	-b)	do_install=false
+	-b)	do_install=false # for RPM build
 		do_piplnlibs=false
 		true;;
-	-i)	do_build=false
+	-i)	do_build=false	# for RPM build
 		do_piplnlibs=false
 		true;;
 	--prefix=*)
@@ -176,6 +175,30 @@ fi
 
 set -x
 
+function do_workaround () {
+    ##echo '===== workaround ===='
+    if [ -f $SRCDIR/intl/plural.c ]; then
+	cp -p -f $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
+    fi
+    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
+}
+
+function redo_workaround () {
+    if [ -f $SRCDIR/intl/plural.c.NG ] &&
+	diff $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG; then
+	##echo '===== redo workaround ===='
+	cp -p -f $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
+    fi
+}
+
+function undo_workaround () {
+    if [ -f $SRCDIR/intl/plural.c.NG ] &&
+	! diff $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG; then
+	##echo '===== undo workaround ===='
+	cp -p -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
+    fi
+}
+
 if $do_build; then
 	set +e
         # unlink $prefix/share not to be deleted by 'make clean'
@@ -199,17 +222,13 @@ if $do_build; then
 	    --disable-profile \
 	    ${enable_nss_crypt} \
 	    ${opt_distro}
+	redo_workaround
 	make -j${BUILD_PARALLELISM} ${opt_mflags}
 	mkst=$?;
 	set -e
-# workaround
 	if [ $mkst != 0 ]; then
 	    echo
-	    echo '===== workaround ===='
-	    if [ -f $SRCDIR/intl/plural.c ]; then
-		mv -f $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
-	    fi
-	    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
+	    do_workaround
 	    echo '===== try again ===='
 	    make clean
 	    make distclean
@@ -246,6 +265,7 @@ if $do_install; then
 	fi
 	# do make install PiP-glibc
 	make install ${opt_mflags}
+	undo_workaround
 	# then mv the installed $prefix/share to share.pip. 'rm -r' if exists
 	if [ -d ${DESTDIR}$prefix/share ] && ! [ -h ${DESTDIR}$prefix/share ]; then
 	    if [ -d ${DESTDIR}$prefix/share.pip ]; then
@@ -257,12 +277,7 @@ if $do_install; then
 	if ! [ -h ${DESTDIR}$prefix/share ]; then
 	    ln -s /usr/share ${DESTDIR}$prefix/share
 	fi
-	# undo workaround -- if we do this, next 'build -i ...' will fail!!
-	## if [ -f $SRCDIR/intl/plural.c.NG ]; then
-	##    echo '===== undo workaround ===='
-	##    mv -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
-	## fi
-	# make, install and run piplnlibs.sh
+	# make and install piplnlibs.sh
 	if ! [ -d ${DESTDIR}$prefix/bin ]; then
 	    mkdir -p ${DESTDIR}$prefix/bin
 	fi
