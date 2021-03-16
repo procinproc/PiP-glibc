@@ -27,6 +27,8 @@
 
 BUILD_TRAP_SIGS='1 2 14 15';
 
+echo $0 $@ > .build.cmd
+
 check_packages() {
     pkgs_installed="`yum list available 2>/dev/null | cut -d ' ' -f 1 | cut -d '.' -f 1`";
     pkgs_needed="systemtap*-devel readline-devel ncurses-devel rpm-devel"
@@ -65,11 +67,8 @@ cmd=`basename $0`
 
 usage()
 {
-	echo >&2 "Usage: ./$cmd [-b] [-j<N>] <PREFIX>"
-	echo >&2 "       ./$cmd -i <PREFIX>"
-	echo >&2 "	-b      : build only, do not install" # for RPM
+	echo >&2 "Usage: ./$cmd [-j<N>] <PREFIX>"
 	echo >&2 "	-j<N>   : make parallelism"
-	echo >&2 "	-i      : install only, do not build" # for RPM
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
@@ -166,6 +165,8 @@ if $do_build; then
 	if [ -h $prefix/share ]; then
 	    unlink $prefix/share
 	fi
+	make clean
+	make distclean
 	$SRCDIR/configure CC="${CC}" CXX="${CXX}" \
 		"CFLAGS=${CFLAGS} -Wp,-D_GLIBCXX_ASSERTIONS -specs=/usr/lib/rpm/redhat/redhat-annobin-cc1 ${opt_machine_flags} -fasynchronous-unwind-tables -fstack-clash-protection" \
 		--prefix=$prefix \
@@ -210,7 +211,6 @@ if $do_install; then
 	if ! [ -h ${DESTDIR}$prefix/share ]; then
 	    ln -s /usr/share ${DESTDIR}$prefix/share
 	fi
-
 	# workaround (removing RPATH in ld-liux.so)
 	rm -f pip_annul_rpath
 	${CC} -g -O2 ${SRCDIR}/pip_annul_rpath.c -o pip_annul_rpath
@@ -221,11 +221,12 @@ if $do_install; then
 	if ! [ -d ${DESTDIR}$prefix/bin ]; then
 	    mkdir -p ${DESTDIR}$prefix/bin
 	fi
-	sed "s|@GLIBC_PREFIX@|$prefix|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
+	sed "s|@GLIBC_PREFIX@|${prefix}|" \
+	    < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
 	chmod +x ${DESTDIR}${prefix}/bin/piplnlibs
 
 	if ${do_piplnlibs}; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
-	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s )
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s -r )
 	fi
 fi
