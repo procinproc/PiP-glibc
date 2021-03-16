@@ -281,12 +281,13 @@ if $do_install; then
 	if ! [ -d ${DESTDIR}$prefix/bin ]; then
 	    mkdir -p ${DESTDIR}$prefix/bin
 	fi
-	sed "s|@GLIBC_PREFIX@|${prefix}|" < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}$prefix/bin/piplnlibs
-	chmod +x ${DESTDIR}$prefix/bin/piplnlibs
+	sed "s|@GLIBC_PREFIX@|${prefix}|" \
+	    < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
+	chmod +x ${DESTDIR}${prefix}/bin/piplnlibs
 
-	if $do_piplnlibs; then
+	if ${do_piplnlibs}; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
-	    ( unset LD_LIBRARY_PATH; ${DESTDIR}$prefix/bin/piplnlibs -s -r )
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s -r )
 	fi
 fi
 
