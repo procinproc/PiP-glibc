@@ -1,0 +1,46 @@
+name: create pip-glibc RPMs
+
+on:
+
+  workflow_dispatch:
+
+    inputs:
+
+      distros:
+        description: 'distribtions to create the images'
+        required: true
+        default: 'centos7,centos8'
+
+      archs:
+        description: 'architectures of the images'
+        required: true
+        default: 'amd64,arm64'
+
+jobs:
+
+  dispatch:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: convert distros/archs strings to arrays
+        id: to_array
+        run: |
+           echo "::set-output name=distros::[$(echo "${{ github.event.inputs.distros }}" | awk -F, '{printf "\"%s\"", $1; for (i=2; i<=NF; i++) printf ", \"%s\"", $i; }')]"
+           echo "::set-output name=archs::[$(echo "${{ github.event.inputs.archs }}" | awk -F, '{printf "\"%s\"", $1; for (i=2; i<=NF; i++) printf ", \"%s\"", $i; }')]"
+
+      - name: debug print
+        run: |
+           echo "github.event.inputs.distros=<${{ github.event.inputs.distros }}>"
+           echo "github.event.inputs.archs=<${{ github.event.inputs.archs }}>"
+           echo "steps.to_array.outputs.distros=<${{ steps.to_array.outputs.distros }}>"
+           echo "steps.to_array.outputs.archs=<${{ steps.to_array.outputs.archs }}>"
+
+      - name: dispatch event
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.PIP_BUILD_TOKEN }}
+          repository: ${{ github.repository }}
+          event-type: pip-glibc-test-ok
+          client-payload: '{ "distros": ${{ steps.to_array.outputs.distros }}, "archs": ${{ steps.to_array.outputs.archs }} }'
