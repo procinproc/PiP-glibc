@@ -118,3 +118,23 @@ jobs:
         with:
           name: pip-glibc-${{ matrix.distro }}-${{ matrix.arch }}-rpm
           path: rpm
+
+  dispatch:
+
+    needs: [build]
+
+    strategy:
+      matrix:
+        repo: ['${{ github.repository }}' ]
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: dispatch event
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.PIP_BUILD_TOKEN }}
+          repository: ${{ matrix.repo }}
+          event-type: pip-glibc-rpm-built
+          client-payload: '{ "distros": ${{ github.event.client_payload.distros }}, "archtypes": ["multiarch", "amd64", "arm64" ] }'
