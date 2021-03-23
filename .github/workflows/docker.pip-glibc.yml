@@ -33,7 +33,7 @@ jobs:
             ;;
           esac
           echo "::set-output name=platforms::$platforms"
-          echo "::set-output name=docker_tag::${{ matrix.distro }}${archsuffix}"
+          echo "::set-output name=docker_tag::HEAD-${{ matrix.distro }}${archsuffix}"
            
       - name: sparse checkout default branch
         run: |
