@@ -49,8 +49,7 @@
  ###
 ### \environment
 ### \arg \b PIP_LIBRARY_PATH Symbolic links to SOLIBs in the directories specified by PIP_LIBRARY_PATH
-### will be also created.
-### \arg \b  LD_LIBRARY_PATH If PIP_LIBRARY_PATH is not set, LD_LIBRARY_PATH is used instead.
+### will also be created.
 ###
 
 exit_status=0
@@ -139,11 +138,10 @@ fi
 
 $opt_remove_only && exit $exit_status
 
-if [ -n "${PIP_LIBRARY_PATH:-$LD_LIBRARY_PATH}" ]; then
-	extra_libdirs=`echo "${PIP_LIBRARY_PATH:-$LD_LIBRARY_PATH}" |
-		tr ':' '\012' | grep '^/'`
+if [ -n "${PIP_LIBRARY_PATH}" ]; then
+    extra_libdirs=`echo "${PIP_LIBRARY_PATH}" | tr ':' '\012' | grep '^/'`
 else
-	extra_libdirs=
+    extra_libdirs=
 fi
 
 for libdir in ${extra_libdirs} ${glibc_default_libdir}
