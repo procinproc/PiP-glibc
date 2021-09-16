@@ -39,7 +39,9 @@ __sbrk (intptr_t increment)
      __curbrk from the kernel's brk value.  That way two separate
      instances of __brk and __sbrk can share the heap, returning
      interleaved pieces of it.  */
+#ifndef WITH_PIPCLONE
   if (__curbrk == NULL || __libc_multiple_libcs)
+#endif
     if (__brk (0) < 0)		/* Initialize the break.  */
       return (void *) -1;
 
