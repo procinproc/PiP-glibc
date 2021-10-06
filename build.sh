@@ -202,8 +202,8 @@ function undo_workaround () {
 if $do_build; then
 	set +e
         # unlink $prefix/share not to be deleted by 'make clean'
-	if [ -h $prefix/share ]; then
-	    unlink $prefix/share
+	if [ -h ${DESTDIR}$prefix/share ]; then
+	    unlink ${DESTDIR}$prefix/share
 	fi
 	make clean
 	make distclean
@@ -283,5 +283,5 @@ if $do_install; then
 fi
 
 if [ x${enable_nss_crypt} == x ]; then
-    echo "Warning: '--enable_nns_crypt' has been disabled"
+    echo "Warning: '--enable-nns-crypt' has been disabled"
 fi
