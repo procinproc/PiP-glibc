@@ -17,9 +17,6 @@
 # License along with the GNU C Library; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# The configure options specified in this script are the same with those of
-# RedHat (and CentOS) distribution (By N. Soda at SRA)
-#
 # ./build.sh PREFIX
 # Arguments:
 #	PREFIX: the install directory
@@ -199,6 +196,9 @@ function undo_workaround () {
     fi
 }
 
+# The configure options specified in this script are the same with those of
+# RedHat (and CentOS) distribution (By N. Soda at SRA)
+
 if $do_build; then
 	set +e
         # unlink $prefix/share not to be deleted by 'make clean'
@@ -207,10 +207,9 @@ if $do_build; then
 	fi
 	make clean
 	make distclean
-	$SRCDIR/configure --prefix=$prefix \
-	    CC="${CC}" \
-	    CXX="${CXX}" \
-	    "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
+	$SRCDIR/configure --prefix=${prefix} --datarootdir=${prefix}/share.pip-glibc \
+	    CC="${CC}" CXX="${CXX}" \
+	    CFLAGS="${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
 	    --enable-add-ons=${opt_add_ons} \
 	    --with-headers=/usr/include \
 	    --enable-kernel=2.6.32 \
@@ -232,21 +231,20 @@ if $do_build; then
 	    echo '===== try again ===='
 	    make clean
 	    make distclean
-	    $SRCDIR/configure --prefix=$prefix \
-		CC="${CC}" \
-		CXX="${CXX}" \
-		"CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
-		--enable-add-ons=${opt_add_ons} \
-		--with-headers=/usr/include \
-		--enable-kernel=2.6.32 \
-		--enable-bind-now \
-		--build=${opt_build} \
-		${opt_multi_arch} \
-		--enable-obsolete-rpc \
-		${enable_systemtap} \
-		--disable-profile \
-		${enable_nss_crypt} \
-		${opt_distro}
+	    $SRCDIR/configure --prefix=${prefix} --datarootdir=${prefix}/share.pip-glibc \
+		CC="${CC}" CXX="${CXX}" \
+		CFLAGS="${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
+	        --enable-add-ons=${opt_add_ons} \
+	    	--with-headers=/usr/include \
+	    	--enable-kernel=2.6.32 \
+	    	--enable-bind-now \
+	    	--build=${opt_build} \
+	    	${opt_multi_arch} \
+	    	--enable-obsolete-rpc \
+	    	${enable_systemtap} \
+	    	--disable-profile \
+	    	${enable_nss_crypt} \
+	    	${opt_distro}
 	    make -j${BUILD_PARALLELISM} ${opt_mflags}
 	    extval=$?
             if [ $extval != 0 ]; then
@@ -266,14 +264,7 @@ if $do_install; then
 	# do make install PiP-glibc
 	make install ${opt_mflags}
 	undo_workaround
-	# then mv the installed $prefix/share to share.pip. 'rm -r' if exists
-	if [ -d ${DESTDIR}$prefix/share ] && ! [ -h ${DESTDIR}$prefix/share ]; then
-	    if [ -d ${DESTDIR}$prefix/share.pip ]; then
-		rm -r ${DESTDIR}$prefix/share.pip
-	    fi
-	    mv -f ${DESTDIR}$prefix/share ${DESTDIR}$prefix/share.pip
-	fi
-	# finally symbolic link to /usr/share
+	# symbolic link to /usr/share
 	if ! [ -h ${DESTDIR}$prefix/share ]; then
 	    ln -s /usr/share ${DESTDIR}$prefix/share
 	fi
