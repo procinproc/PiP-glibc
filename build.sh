@@ -17,31 +17,131 @@
 # License along with the GNU C Library; if not, see
 # <http://www.gnu.org/licenses/>.
 
-# The configure options specified in this script are the same with those of
-# RedHat (and CentOS) distribution (By N. Soda at SRA)
-#
-# ./build.sh SRCDIR PREFIX
+# ./build.sh PREFIX
 # Arguments:
-#	SRCDIR: root directory of the GLIB source code
 #	PREFIX: the install directory
 #
 
+BUILD_TRAP_SIGS='1 2 14 15';
+
+echo $0 $@ > .build.cmd
+
+cleanup()
+{
+    echo;
+    echo "cleaning up ..."
+    rm -f -r *;
+    exit 2;
+}
+
+trap cleanup $BUILD_TRAP_SIGS;
+
+cmd=`basename $0`
+
 usage()
 {
-	echo >&2 "Usage: ./`basename $0` [-bi] <SRCDIR> <PREFIX>"
-	echo >&2 "	-b      : build only, do not install"
-	echo >&2 "	-i      : install only, do not build"
-	echo >&2 "	<SRCDIR>: root directory of the GLIB source code"
+	echo >&2 "Usage: ./$cmd [-j<N>] <PREFIX>"
+	echo >&2 "	-j<N>   : make parallelism"
 	echo >&2 "	<PREFIX>: the install directory"
 	exit 2
 }
 
 do_build=true
 do_install=true
+do_piplnlibs=true
 
+dir=`dirname $0`
+srcdir=`cd $dir; pwd`
+
+: ${SRCDIR:=${srcdir}}
 : ${BUILD_PARALLELISM:=`getconf _NPROCESSORS_ONLN`}
 : ${CC:=gcc}
 : ${CXX:=g++}
+
+pwd=`pwd`
+cwd=`realpath ${pwd}`
+rsrcdir=`realpath ${SRCDIR}`
+if [ x"${cwd}" == x"${rsrcdir}" ]; then
+    echo >&2 "Error: ${cmd} must be invoked at the different directory from the source tree"
+    exit 1;
+fi
+cdir=`ls`
+if [ x"${cdir}" != x ]; then
+    echo >&2 "Warning: The current directory is not empty"
+    echo >&2 "         If build.sh fails with compilation errors,"
+    echo >&2 "         remove all files and directoris in this directory"
+    echo >&2 "         and then try again."
+fi
+
+build_parallelism=
+
+# -b is for %build phase, and -i is for %install phase of rpmbuild(8)
+while	case "$1" in
+	-b)	do_install=false # for RPM build
+		do_piplnlibs=false
+		true;;
+	-i)	do_build=false	# for RPM build
+		do_piplnlibs=false
+		true;;
+	--prefix=*)
+		prefix=`expr "$1" : "--prefix=\(.*\)"`; true;;
+	-j*)
+		build_parallelism=`expr "$1" : "-j\([0-9]*\)"`; true;;
+	-*)	usage;;
+	'')	false;;
+	*)	prefix=$1; true;;
+	esac
+do
+	shift
+done
+
+if [ x"$prefix" == x ]; then
+    echo >&2 "Error: <PREFIX> must be specifgied"
+    usage;
+fi
+
+case "$1" in
+-*)	usage;;
+esac
+
+if [ x"${build_parallelism}" != x ]; then
+    BUILD_PARALLELISM=${build_parallelism}
+fi
+
+echo "Checking required packages ... "
+
+enable_nss_crypt=
+enable_systemtap=
+
+pkg_check=true
+nopkg=false
+for pkgn in $pkgs_needed; do
+    if yum list installed $pkgn >/dev/null 2>&1; then
+	case ${pkgn} in
+	    nss) nss_config=`which nss-config 2> /dev/null`;
+		if [ z"${nss_config}" != z -a -x ${nss_config} ]; then
+		     enable_nss_crypt="--enable-nss-crypt"
+	         fi;;
+	esac
+    elif ! [ -d ${SRCDIR}/header-import/${pkgn} ]; then
+	    CPPFLAGS="-I${SRCDIR}/header-import/${pkgn}"
+    else
+        echo "'$pkgn' package is not installed but required"
+	pkg_check=false
+    fi
+    if [ x"${pkgs}" == x"systemtap" ]; then
+	if [ -f /usr/include/sys/sdt.h ]; then
+	    enable_systemtap="--enable-systemtap"
+	fi
+    fi
+done
+
+if $pkg_check; then
+    echo "All required packages found"
+else
+    echo "Some packages are missing"
+    exit 1
+fi
 
 case `uname -m` in
 aarch64)
@@ -49,7 +149,6 @@ aarch64)
 	opt_add_ons=ports,nptl,c_stubs,libidn
 	opt_build=aarch64-redhat-linux
 	opt_multi_arch=
-	opt_systemtap=--enable-systemtap
 	opt_mflags=PARALLELMFLAGS=
 	;;
 x86_64)
@@ -57,41 +156,65 @@ x86_64)
 	opt_add_ons=ports,nptl,rtkaio,c_stubs,libidn
 	opt_build=x86_64-redhat-linux
 	opt_multi_arch=--enable-multi-arch
-	opt_systemtap=--enable-systemtap
 	opt_mflags=
 	;;
 *)
-	echo >&2 "`basename $0`: unsupported machine type: `uname -m`"
+	echo >&2 "$cmd: unsupported machine type: `uname -m`"
 	exit 2
 	;;
 esac
 
-case "$1" in
--b)	do_install=false; shift;;
--i)	do_build=false; shift;;
--*)	usage;;
-esac
-
-case "$1" in
--*)	usage;;
-esac
-
-case $# in
-2)	:;;
-*)	usage;;
-esac
+if [ -f /etc/debian_version ]; then
+	opt_distro=--disable-werror
+else
+	opt_distro=
+fi
 
 set -x
 
+# The configure options specified in this script are the same with those of
+# RedHat (and CentOS) distribution (By N. Soda at SRA)
+
 if $do_build; then
+	set +e
+        # unlink $prefix/share not to be deleted by 'make clean'
+        # unlink $prefix/share not to be deleted by 'make install'
+	if [ -h ${DESTDIR}$prefix/share ]; then
+	    unlink ${DESTDIR}$prefix/share
+	fi
 	make clean
 	make distclean
-
-	$1/configure --prefix=$2 CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${opt_systemtap} --disable-profile --enable-nss-crypt
+	$SRCDIR/configure --prefix=${prefix} --datarootdir=${prefix}/share.pip-glibc \
+	    CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${enable_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
 
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
 fi
 
 if $do_install; then
+        # unlink $prefix/share not to be deleted by 'make install'
+	if [ -h ${DESTDIR}$prefix/share ]; then
+	    unlink ${DESTDIR}$prefix/share
+	fi
+	# do make install PiP-glibc
 	make install ${opt_mflags}
+	# symbolic link to /usr/share
+	if ! [ -h ${DESTDIR}$prefix/share ]; then
+	    ln -s /usr/share ${DESTDIR}$prefix/share
+	fi
+	# make and install piplnlibs.sh
+	if ! [ -d ${DESTDIR}$prefix/bin ]; then
+	    mkdir -p ${DESTDIR}$prefix/bin
+	fi
+	sed "s|@GLIBC_PREFIX@|${prefix}|" \
+	    < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
+	chmod +x ${DESTDIR}${prefix}/bin/piplnlibs
+
+	if ${do_piplnlibs}; then
+	    # for RPM, this has to be done at "rpm -i" instead of %install phase
+	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s -r )
+	fi
+fi
+
+if [ x${enable_nss_crypt} == x ]; then
+    echo "Warning: '--enable-nns-crypt' has been disabled"
 fi

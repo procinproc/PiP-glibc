@@ -1,0 +1,170 @@
+#!/bin/sh
+
+# $RIKEN_copyright: 2018 Riken Center for Computational Sceience,
+# 	  System Software Devlopment Team. All rights researved$
+# $PIP_VERSION: Version 1.0$
+# $PIP_license: <Simplified BSD License>
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are
+# met:
+#
+# 1. Redistributions of source code must retain the above copyright
+#    notice, this list of conditions and the following disclaimer.
+# 2. Redistributions in binary form must reproduce the above copyright
+#    notice, this list of conditions and the following disclaimer in the
+#    documentation and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+# A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+# OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+# SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+# LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+# DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+# THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+# The views and conclusions contained in the software and documentation
+# are those of the authors and should not be interpreted as representing
+# official policies, either expressed or implied, of the PiP project.$
+
+### \page piplnlibs piplnlibs
+###
+### \brief command to create symbolic links to the SOLIBs in the install directory
+### of the patched GLIBC.
+###
+### \synopsis
+### piplnlibs [ OPTIONS ]
+###
+### \description
+### This command creates a number of symbolic links to the SOLIBs which
+### are not installed by the patched GLIBC installation.
+###
+### \param -a Add DIR to directories to search SOLIBS to create symbolic links.
+### \param -R Remove symbolic links to SOLIBs in @GLIBC_LIBDIR@, and do not create symbolic links
+### \param -r Remove symbolic links to SOLIBs in @GLIBC_LIBDIR@ before creating.
+### \param -s Silent mode.
+ ###
+### \environment
+### \arg \b PIP_LIBRARY_PATH Symbolic links to SOLIBs in the directories specified by PIP_LIBRARY_PATH
+### will also be created.
+###
+
+exit_status=0
+opt_silent=false
+opt_remove_only=false
+opt_remove=false
+add_libdir=
+program_name=`basename $0`
+
+glibc_prefix=@GLIBC_PREFIX@
+
+glibc_libdir=${glibc_prefix}/lib
+glibc_default_libdir=/lib64
+
+usage()
+{
+	echo >&2 "Usage: ${program_name} [-Rrs] [DIR]"
+	exit 2
+}
+
+for option
+do
+	case ${option} in
+	    -*)	case ${option} in -*R*) opt_remove_only=true
+					opt_remove=true;;
+		esac
+		case ${option} in -*r*) opt_remove=true;; esac
+		case ${option} in -*s*) opt_silent=true;; esac
+		case ${option} in -a)
+			shift;
+			add_libdir=${option};;
+		esac
+		case ${option} in -*[!Rrsa]*)
+			echo "${program_name}: error: invalid option ${option}" >&2
+			usage;;
+		esac;;
+	esac
+done
+
+if ! [ -d ${glibc_libdir} -a -f ${glibc_libdir}/libc.so ]; then
+    echo "${glibc_libdir} does not seem to be Glibc libdir" >&2
+    exit 1
+fi
+
+if [ x"${glibc_libdir}" == x"${glibc_default_libdir}" ]; then
+	echo "${program_name}: warning:" \
+	     "nothing to do, because ${glibc_libdir} == ${glibc_default_libdir}" >&2
+	exit 0
+fi
+
+if [ x"${add_libdir}" != x ]; then
+	ls ${add_libdir} | grep '^lib.*\.so\(\.[0-9a-z]*\)*$' |
+	while read lib
+	do
+		if [ -f ${glibc_libdir}/$lib ]; then
+			continue
+		fi
+		${opt_silent} || echo \
+		   ln -s ${libdir}/${lib} ${glibc_libdir}/
+		if ln -s ${libdir}/${lib} ${glibc_libdir}/
+		then
+			:
+		else
+			exit_status=1
+		fi
+	done
+	exit 0
+fi
+
+if ${opt_remove}; then
+	find ${glibc_libdir} -maxdepth 1 -type l -name 'lib*.so*' |
+	while read lib
+	do
+		if readlink ${lib} | grep '^/' >/dev/null; then
+			${opt_silent} || echo \
+			   rm ${lib}
+			if rm ${lib}
+			then
+				:
+			else
+				exit_status=1
+			fi
+		fi
+	done
+fi
+
+$opt_remove_only && exit $exit_status
+
+if [ -n "${PIP_LIBRARY_PATH}" ]; then
+    extra_libdirs=`echo "${PIP_LIBRARY_PATH}" | tr ':' '\012' | grep '^/'`
+else
+    extra_libdirs=
+fi
+
+for libdir in ${extra_libdirs} ${glibc_default_libdir}
+do
+	ls ${libdir} | grep '^lib.*\.so\(\.[0-9a-z]*\)*$' |
+	while read lib
+	do
+		if [ -f ${glibc_libdir}/${lib} ]; then
+			continue
+		fi
+		${opt_silent} || echo \
+		   ln -s ${libdir}/${lib} ${glibc_libdir}/
+		if ln -s ${libdir}/${lib} ${glibc_libdir}/
+		then
+			:
+		else
+			exit_status=1
+		fi
+	done
+done
+
+if [ ${exit_status} == 0 ]; then
+    echo "${program_name} succeeded"
+fi
+
+exit ${exit_status}
