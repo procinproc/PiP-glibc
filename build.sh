@@ -95,7 +95,7 @@ do
 	shift
 done
 
-if [ x"$prefix" == x ]; then
+if [ x"${prefix}" == x ]; then
     echo >&2 "Error: <PREFIX> must be specifgied"
     usage;
 fi
@@ -172,38 +172,39 @@ fi
 
 set -x
 
-# The configure options specified in this script are the same with those of
-# RedHat (and CentOS) distribution (By N. Soda at SRA)
-
 if $do_build; then
 	set +e
-        # unlink $prefix/share not to be deleted by 'make clean'
-        # unlink $prefix/share not to be deleted by 'make install'
-	if [ -h ${DESTDIR}$prefix/share ]; then
-	    unlink ${DESTDIR}$prefix/share
+        # unlink ${prefix}/share not to be deleted by 'make clean'
+	if [ -h ${DESTDIR}${prefix}/share ]; then
+	    unlink ${DESTDIR}${prefix}/share
 	fi
 	make clean
 	make distclean
-	$SRCDIR/configure --prefix=${prefix} --datarootdir=${prefix}/share.pip-glibc \
+	$SRCDIR/configure --prefix=${prefix} \
 	    CC="${CC}" CXX="${CXX}" "CFLAGS=${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" --enable-add-ons=${opt_add_ons} --with-headers=/usr/include --enable-kernel=2.6.32 --enable-bind-now --build=${opt_build} ${opt_multi_arch} --enable-obsolete-rpc ${enable_systemtap} --disable-profile ${enable_nss_crypt} ${opt_distro}
 
 	make -j ${BUILD_PARALLELISM} ${opt_mflags}
 fi
 
 if $do_install; then
-        # unlink $prefix/share not to be deleted by 'make install'
-	if [ -h ${DESTDIR}$prefix/share ]; then
-	    unlink ${DESTDIR}$prefix/share
+        # unlink ${prefix}/share not to be deleted by 'make install'
+	if [ -h ${DESTDIR}${prefix}/share ]; then
+	    unlink ${DESTDIR}${prefix}/share
 	fi
 	# do make install PiP-glibc
 	make install ${opt_mflags}
-	# symbolic link to /usr/share
-	if ! [ -h ${DESTDIR}$prefix/share ]; then
-	    ln -s /usr/share ${DESTDIR}$prefix/share
+	# then mv the installed $prefix/share to share.pip-glibc. 'rm -r' if exists
+	if [ -d ${DESTDIR}${prefix}/share ]; then
+	    if [ -d ${DESTDIR}${prefix}/share.pip-glibc ]; then
+		rm -r -f ${DESTDIR}${prefix}/share.pip-glibc
+	    fi
+	    mv -f ${DESTDIR}${prefix}/share ${DESTDIR}${prefix}/share.pip-glibc
 	fi
+	# finally symbolic link to /usr/share
+	ln -s /usr/share ${DESTDIR}${prefix}/share
 	# make and install piplnlibs.sh
-	if ! [ -d ${DESTDIR}$prefix/bin ]; then
-	    mkdir -p ${DESTDIR}$prefix/bin
+	if ! [ -d ${DESTDIR}${prefix}/bin ]; then
+	    mkdir -p ${DESTDIR}${prefix}/bin
 	fi
 	sed "s|@GLIBC_PREFIX@|${prefix}|" \
 	    < ${SRCDIR}/piplnlibs.sh.in > ${DESTDIR}${prefix}/bin/piplnlibs
