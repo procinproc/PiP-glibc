@@ -263,15 +263,6 @@ if $do_install; then
 	fi
 	# do make install PiP-glibc
 	make install ${opt_mflags}
-	# then mv the installed $prefix/share to share.pip-glibc. 'rm -r' if exists
-	if [ -d ${DESTDIR}${prefix}/share ]; then
-	    if [ -d ${DESTDIR}${prefix}/share.pip-glibc ]; then
-		rm -r -f ${DESTDIR}${prefix}/share.pip-glibc
-	    fi
-	    mv -f ${DESTDIR}${prefix}/share ${DESTDIR}${prefix}/share.pip-glibc
-	fi
-	# finally symbolic link to /usr/share
-	ln -s /usr/share ${DESTDIR}${prefix}/share
 	# undo workaround
 	undo_workaround
 	# make and install piplnlibs.sh
@@ -286,6 +277,15 @@ if $do_install; then
 	    # for RPM, this has to be done at "rpm -i" instead of %install phase
 	    ( unset LD_LIBRARY_PATH; ${DESTDIR}${prefix}/bin/piplnlibs -s -r )
 	fi
+	# mv the installed $prefix/share to share.pip-glibc. 'rm -r' if exists
+	if [ -d ${DESTDIR}${prefix}/share ]; then
+	    if [ -d ${DESTDIR}${prefix}/share.pip-glibc ]; then
+		rm -r -f ${DESTDIR}${prefix}/share.pip-glibc
+	    fi
+	    mv -f ${DESTDIR}${prefix}/share ${DESTDIR}${prefix}/share.pip-glibc
+	fi
+	# make a symbolic link to /usr/share/*
+	ln -s /usr/share ${DESTDIR}${prefix}/share
 fi
 
 if [ x${enable_nss_crypt} == x ]; then
