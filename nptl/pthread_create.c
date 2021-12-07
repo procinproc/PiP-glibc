@@ -37,7 +37,6 @@
 
 #include <stap-probe.h>
 
-
 /* Local function to start thread and handle cleanup.  */
 static int start_thread (void *arg);
 

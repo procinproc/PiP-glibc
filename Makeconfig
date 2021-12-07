@@ -1086,6 +1086,7 @@ endif
 
 # for PiP
 defines += -DWITH_PIPCLONE
+defines += -DWITH_PIPARGV
 
 endif # Makeconfig not yet included
 

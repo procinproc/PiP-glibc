@@ -8,6 +8,9 @@ libc {
   GLIBC_2.1 {
     # New special glibc functions.
     gnu_get_libc_release; gnu_get_libc_version;
+
+    # PiP
+    pip_set_args;
   }
   GLIBC_PRIVATE {
     errno;

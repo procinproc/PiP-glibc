@@ -39,6 +39,13 @@ int __libc_argc attribute_hidden;
 char **__libc_argv attribute_hidden;
 
 
+#ifdef WITH_PIPARGV
+void pip_set_args( int argc, char **argv ) {
+  __libc_argc = argc;
+  __libc_argv = argv;
+}
+#endif
+
 void
 __libc_init_first (int argc, char **argv, char **envp)
 {
