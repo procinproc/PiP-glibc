@@ -214,6 +214,7 @@ if $do_build; then
 	    --with-headers=/usr/include \
 	    --enable-kernel=2.6.32 \
 	    --enable-bind-now \
+	    --enable-process-in-process \
 	    --build=${opt_build} \
 	    ${opt_multi_arch} \
 	    --enable-obsolete-rpc \
@@ -238,6 +239,7 @@ if $do_build; then
 	    	--with-headers=/usr/include \
 	    	--enable-kernel=2.6.32 \
 	    	--enable-bind-now \
+                --enable-process-in-process \
 	    	--build=${opt_build} \
 	    	${opt_multi_arch} \
 	    	--enable-obsolete-rpc \
