@@ -41,6 +41,17 @@ install-others = $(inst_localedir)/locale.alias
 generated += msgs.h mtrace-tst-gettext.out tst-gettext.mtrace plural.c
 generated-dirs += domaindir localedir
 
+
+BISONVERGT2 := $(shell expr `bison -V | grep ^bison | sed 's/^.* //' | cut -f1 -d.` \> 2)
+plural.y:
+ifeq (0,$(BISONVERGT2))
+	cp -f plural2.y plural.y
+	cp -f plural-exp2.h plural-exp.h
+else
+	cp -f plural3.y plural.y
+	cp -f plural-exp3.h plural-exp.h
+endif
+
 $(objpfx)plural.c: plural.y
 	$(make-target-directory)
 	$(BISON) $(BISONFLAGS) $@ $^
