@@ -55,6 +55,7 @@ endif
 $(objpfx)plural.c: plural.y
 	$(make-target-directory)
 	$(BISON) $(BISONFLAGS) $@ $^
+	rm -f plyral.y
 
 $(objpfx)plural.o: $(objpfx)plural.c
 
