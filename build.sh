@@ -65,13 +65,6 @@ if [ x"${cwd}" == x"${rsrcdir}" ]; then
     echo >&2 "Error: ${cmd} must be invoked at the different directory from the source tree"
     exit 1;
 fi
-cdir=`ls`
-if [ x"${cdir}" != x ]; then
-    echo >&2 "Warning: The current directory is not empty"
-    echo >&2 "         If build.sh fails with compilation errors,"
-    echo >&2 "         remove all files and directoris in this directory"
-    echo >&2 "         and then try again."
-fi
 
 build_parallelism=
 
@@ -172,30 +165,6 @@ fi
 
 set -x
 
-function do_workaround () {
-    ##echo '===== workaround ===='
-    if [ -f $SRCDIR/intl/plural.c ]; then
-	cp -p -f $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG
-    fi
-    cp $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
-}
-
-function redo_workaround () {
-    if [ -f $SRCDIR/intl/plural.c.NG ] &&
-	diff $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG; then
-	##echo '===== redo workaround ===='
-	cp -p -f $SRCDIR/intl/plural.c.OK $SRCDIR/intl/plural.c
-    fi
-}
-
-function undo_workaround () {
-    if [ -f $SRCDIR/intl/plural.c.NG ] &&
-	! diff $SRCDIR/intl/plural.c $SRCDIR/intl/plural.c.NG; then
-	##echo '===== undo workaround ===='
-	cp -p -f $SRCDIR/intl/plural.c.NG $SRCDIR/intl/plural.c
-    fi
-}
-
 # The configure options specified in this script are the same with those of
 # RedHat (and CentOS) distribution (By N. Soda at SRA)
 
@@ -205,8 +174,10 @@ if $do_build; then
 	if [ -h ${DESTDIR}${prefix}/share ]; then
 	    unlink ${DESTDIR}${prefix}/share
 	fi
-	make clean
-	make distclean
+	# make clean
+	# make distclean
+	rm -rf *
+	set -e
 	$SRCDIR/configure --prefix=${prefix} \
 	    CC="${CC}" CXX="${CXX}" \
 	    CFLAGS="${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
@@ -222,39 +193,7 @@ if $do_build; then
 	    --disable-profile \
 	    ${enable_nss_crypt} \
 	    ${opt_distro}
-	redo_workaround
 	make -j${BUILD_PARALLELISM} ${opt_mflags}
-	mkst=$?;
-	set -e
-	if [ $mkst != 0 ]; then
-	    echo
-	    do_workaround
-	    echo '===== try again ===='
-	    make clean
-	    make distclean
-	    $SRCDIR/configure --prefix=${prefix} \
-		CC="${CC}" CXX="${CXX}" \
-		CFLAGS="${CFLAGS} ${opt_mtune} -fasynchronous-unwind-tables -DNDEBUG -g -O3 -fno-asynchronous-unwind-tables" \
-	        --enable-add-ons=${opt_add_ons} \
-	    	--with-headers=/usr/include \
-	    	--enable-kernel=2.6.32 \
-	    	--enable-bind-now \
-                --enable-process-in-process \
-	    	--build=${opt_build} \
-	    	${opt_multi_arch} \
-	    	--enable-obsolete-rpc \
-	    	${enable_systemtap} \
-	    	--disable-profile \
-	    	${enable_nss_crypt} \
-	    	${opt_distro}
-	    make -j${BUILD_PARALLELISM} ${opt_mflags}
-	    extval=$?
-            if [ $extval != 0 ]; then
-		echo >&2 "PiP-glibc build error"
-		exit 1;
-            fi
-	fi
-	## make localedata/install-locales
 fi
 
 # installation should honor ${DESTDIR}, especially for rpmbuild(8)
@@ -274,8 +213,6 @@ if $do_install; then
 	fi
 	# finally symbolic link to /usr/share
 	ln -s /usr/share ${DESTDIR}${prefix}/share
-	# undo workaround
-	undo_workaround
 	# workaround (removing RPATH in ld-liux.so)
 	rm -f pip_annul_rpath
 	${CC} -g -O2 ${SRCDIR}/pip_annul_rpath.c -o pip_annul_rpath
